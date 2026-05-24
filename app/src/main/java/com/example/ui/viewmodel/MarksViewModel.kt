@@ -53,7 +53,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var currentConfig by mutableStateOf<AppConfig?>(null)
         private set
-    var themeMode by mutableStateOf(prefs.getString(KEY_THEME_MODE, "SYSTEM") ?: "SYSTEM")
+    var themeMode by mutableStateOf(prefs.getString(KEY_THEME_MODE, "LIGHT") ?: "LIGHT")
         private set
 
     fun updateThemeMode(mode: String) {

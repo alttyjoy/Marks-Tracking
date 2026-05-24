@@ -48,6 +48,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.MarksViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -140,21 +142,12 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(
                                 onClick = {
-                                    val nextMode = when (viewModel.themeMode) {
-                                        "SYSTEM" -> "LIGHT"
-                                        "LIGHT" -> "DARK"
-                                        "DARK" -> "SYSTEM"
-                                        else -> "SYSTEM"
-                                    }
+                                    val nextMode = if (viewModel.themeMode == "DARK") "LIGHT" else "DARK"
                                     viewModel.updateThemeMode(nextMode)
                                 },
                                 modifier = Modifier.testTag("top_navigation_theme_toggle_button")
                             ) {
-                                val icon = when (viewModel.themeMode) {
-                                    "DARK" -> Icons.Default.Brightness4
-                                    "LIGHT" -> Icons.Default.Brightness7
-                                    else -> Icons.Default.BrightnessAuto
-                                }
+                                val icon = if (viewModel.themeMode == "DARK") Icons.Default.Brightness4 else Icons.Default.Brightness7
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = "Theme: ${viewModel.themeMode}",
@@ -742,6 +735,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
 fun LoginScreen(viewModel: MarksViewModel) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var selectedComplianceDoc by remember { mutableStateOf<String?>(null) }
 
     // Tab control: 0 = Login, 1 = Register
     var activeTab by remember { mutableStateOf(0) }
@@ -771,7 +765,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "EduGrade School & Parent SaaS",
+            "Marks Tracking By Parents Or Schools",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary,
@@ -1254,6 +1248,305 @@ fun LoginScreen(viewModel: MarksViewModel) {
                 Text("Super Demo", fontSize = 11.sp)
             }
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- COMPLIANCE REGULATORY TRUST FOOTER ---
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "SaaS Merchant Licensing & Trust Center",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Required compliance frameworks for direct bank-rail integrations, payment settlement gateways (Razorpay, PayU), and Google Play-Store distribution guidelines.",
+                    fontSize = 10.sp,
+                    color = Slate600,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Interactive Link Grid
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // T&C Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "TC" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_tc_login")
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Terms & Use", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Privacy Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "PRIVACY" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_privacy_login")
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Privacy Policy", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Refunds Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "REFUND" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_refund_login")
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Refund Policy", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Delivery Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "SHIPPING" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_shipping_login")
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.CloudQueue, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Delivery SLA", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    // Contact & Redressal Hub
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedComplianceDoc = "CONTACT" }
+                            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                            .testTag("btn_compliance_contact_login")
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.SupportAgent, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Contact Customer Support Helpline", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "© 2026 EduGrade Corp. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
+                    fontSize = 8.sp,
+                    color = Slate600,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 12.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // Modal Document popup dialog renderer
+    var complianceDocToShow by remember { mutableStateOf<String?>(null) }
+    complianceDocToShow = selectedComplianceDoc
+    if (complianceDocToShow != null) {
+        AlertDialog(
+            onDismissRequest = { selectedComplianceDoc = null },
+            confirmButton = {
+                Button(
+                    onClick = { selectedComplianceDoc = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("I Understand & Accept", color = Color.White, fontSize = 11.sp)
+                }
+            },
+            title = {
+                val title = when (complianceDocToShow) {
+                    "TC" -> "Terms & Conditions of Service"
+                    "PRIVACY" -> "Privacy & Encryption Policy"
+                    "REFUND" -> "Cancellation & Refund SLA"
+                    "SHIPPING" -> "Digital Access & Delivery Policy"
+                    "CONTACT" -> "Merchant Contact Support Registry"
+                    else -> "Operational Policy Docs"
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (complianceDocToShow == "PRIVACY") Icons.Default.Security else Icons.Default.Gavel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            },
+            text = {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        when (complianceDocToShow) {
+                            "TC" -> {
+                                Text(
+                                    "Welcome to Marks Tracking SaaS Solution (internally 'EduGrade'). By registering an account and choosing a billing plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
+                                    "1. User Account Ownership Rights:\n" +
+                                    "You are responsible for keeping passwords and local credentials safe. Under the School Plan, you may provision parent sub-accounts with read-only view access of specific student records.\n\n" +
+                                    "2. Proper System Use:\n" +
+                                    "You must not decrypt database structures, disassemble system cache blocks, or inject malicious payloads on underlying cloud schemas. All educational grades represent accurate academic inputs.\n\n" +
+                                    "3. Annual Licensing Renewal:\n" +
+                                    "SaaS Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "PRIVACY" -> {
+                                Text(
+                                    "Privacy and robust data isolation are fundamental to our architecture:\n\n" +
+                                    "1. Client-Side Grade Protection:\n" +
+                                    "Academic logs, student assessment marks, and subject roll structures are isolated inside multi-tenant rows. Parents from Screen A cannot view student lists from Screen B unless a verified view-only authentication key is generated by the administrator.\n\n" +
+                                    "2. Collected Metadata:\n" +
+                                    "We store active transaction metadata and administrator contact email handles to verify compliance status. No web trackers, third-party sales cookies, or analytics scripts are bundled.\n\n" +
+                                    "3. Third Party Handshakes:\n" +
+                                    "When triggering a secure upgrade subscription, cards, CVVs, and mobile banking identifiers are processed directly over encrypted merchant channels (Razorpay and PayU).",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "REFUND" -> {
+                                Text(
+                                    "We strive to offer premium client-focused grades reporting. Please read our operational billing rollback guidelines:\n\n" +
+                                    "1. Right to Downgrade:\n" +
+                                    "Subscribers can transition or request a licensing downgrade back to the Free Plan (Rs 0.00/Yr) at any point directly from the Billing Suite controls.\n\n" +
+                                    "2. Refund Processing Timeline:\n" +
+                                    "In case of accidental duplicate payment triggers across Indian Banking Rails, a full refund representing 100% of the principal + GST is issued within 5 to 7 working business days. Credits are processed automatically back to the originating bank instrument/card/UPI address.\n\n" +
+                                    "3. Charge dispute request:\n" +
+                                    "Reach out to the registered merchant supervisor at mail@altty.com along with transaction receipt IDs.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "SHIPPING" -> {
+                                Text(
+                                    "This EduGrade application operates purely as a Software-as-a-Service (SaaS) digital delivery model:\n\n" +
+                                    "1. Instant Digital Delivery:\n" +
+                                    "There are strictly no physical books, report cards, printed documents, or CD packages shipped. Digital licensing privileges are automatically granted. Immediately when Razorpay or PayU checkout API completes successfully, your subscription model adjusts instantly, enabling premium creation modules.\n\n" +
+                                    "2. PDF Invoices:\n" +
+                                    "Tax compliant breakdowns (including 18% CGST/SGST calculations) are written to local cache stores instantly and are shareable in real-time.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "CONTACT" -> {
+                                Text(
+                                    "Dedicated SaaS grievance officer contact parameters:\n\n" +
+                                    "• Registered Corporate Entity: EduGrade Solutions Pvt Ltd\n" +
+                                    "• Official Regulatory Support Email: mail@altty.com\n" +
+                                    "• Support Desk Phone: +91 79815 85715\n" +
+                                    "• Corporate Office Address: 150/2RT, Vijaya Nagar Colony, HD-500057\n" +
+                                    "• General Ticketing Turnaround: Within 12 to 24 hours of receiving formal mail feedback.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -1350,21 +1643,12 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                 // Beautiful Theme Cycle Selector (System -> Light -> Dark)
                 IconButton(
                     onClick = {
-                        val nextMode = when (viewModel.themeMode) {
-                            "SYSTEM" -> "LIGHT"
-                            "LIGHT" -> "DARK"
-                            "DARK" -> "SYSTEM"
-                            else -> "SYSTEM"
-                        }
+                        val nextMode = if (viewModel.themeMode == "DARK") "LIGHT" else "DARK"
                         viewModel.updateThemeMode(nextMode)
                     },
                     modifier = Modifier.testTag("theme_toggle_button")
                 ) {
-                    val icon = when (viewModel.themeMode) {
-                        "DARK" -> Icons.Default.Brightness4
-                        "LIGHT" -> Icons.Default.Brightness7
-                        else -> Icons.Default.BrightnessAuto
-                    }
+                    val icon = if (viewModel.themeMode == "DARK") Icons.Default.Brightness4 else Icons.Default.Brightness7
                     Icon(
                         imageVector = icon,
                         contentDescription = "Theme: ${viewModel.themeMode}",
@@ -1790,7 +2074,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Secure Marks Save (Bulk Spanner Cache Update)")
+                    Text("Update Marks")
                 }
             }
         }
@@ -2452,11 +2736,643 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
 
 
 // --- 5. SaaS Billing & Razorpay Payments Simulator Screen ---
+data class PaymentCheckoutDetails(
+    val planType: String,
+    val roleName: String,
+    val basePrice: Double,
+    val planLabel: String
+)
+
+@Composable
+fun PaymentGatewayCheckoutDialog(
+    details: PaymentCheckoutDetails,
+    viewModel: MarksViewModel,
+    onDismiss: () -> Unit
+) {
+    var selectedGateway by remember { mutableStateOf("Razorpay") } // "Razorpay" or "PayU"
+    var selectedMethod by remember { mutableStateOf("CARD") } // "CARD", "UPI", "NETBANKING"
+
+    // Card state
+    var cardNumber by remember { mutableStateOf("") }
+    var cardExpiry by remember { mutableStateOf("") }
+    var cardCvv by remember { mutableStateOf("") }
+    var cardName by remember { mutableStateOf("") }
+
+    // UPI state
+    var upiId by remember { mutableStateOf("") }
+    var upiVerified by remember { mutableStateOf(false) }
+    var upiVerifying by remember { mutableStateOf(false) }
+    var selectQuickUpi by remember { mutableStateOf("") }
+
+    // Netbanking state
+    var selectedBank by remember { mutableStateOf("") }
+
+    // Core execution states
+    var isProcessing by remember { mutableStateOf(false) }
+    var currentStepText by remember { mutableStateOf("") }
+    var showSuccessTick by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    val basePrice = details.basePrice
+    val gst = basePrice * 0.18
+    val totalPayable = basePrice + gst
+
+    AlertDialog(
+        onDismissRequest = { if (!isProcessing) onDismiss() },
+        properties = androidx.compose.ui.window.DialogProperties(
+            dismissOnBackPress = !isProcessing,
+            dismissOnClickOutside = !isProcessing,
+            usePlatformDefaultWidth = false
+        ),
+        modifier = Modifier
+            .fillMaxWidth(0.95f)
+            .padding(vertical = 16.dp)
+            .testTag("payment_checkout_dialog"),
+        confirmButton = {},
+        title = null,
+        text = {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .border(2.dp, if (selectedGateway == "Razorpay") Color(0xFF1E88E5) else Color(0xFF4CAF50), RoundedCornerShape(16.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Title Bar with Secure indicator
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = if (selectedGateway == "Razorpay") Color(0xFF1E88E5) else Color(0xFF4CAF50),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Secure SaaS Payment Hub",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFFE8F5E9), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("100% SECURE", fontSize = 8.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Gateway Selection
+                    Text(
+                        "Select Payment Gateway Merchant:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Razorpay option
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (selectedGateway == "Razorpay") Color(0xFF0D233A) else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedGateway = "Razorpay" }
+                                .border(
+                                    width = 1.5.dp,
+                                    color = if (selectedGateway == "Razorpay") Color(0xFF228AFB) else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .testTag("select_razorpay_gateway")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "Razorpay Secure",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (selectedGateway == "Razorpay") Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    "All Cards & UPI Rails",
+                                    fontSize = 9.sp,
+                                    color = if (selectedGateway == "Razorpay") Color.White.copy(alpha = 0.7f) else adaptiveSlate600()
+                                )
+                            }
+                        }
+
+                        // PayU.In option
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (selectedGateway == "PayU") Color(0xFF1B3D14) else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedGateway = "PayU" }
+                                .border(
+                                    width = 1.5.dp,
+                                    color = if (selectedGateway == "PayU") Color(0xFF8BC63F) else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .testTag("select_payu_gateway")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "PayU.In Instant",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (selectedGateway == "PayU") Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    "Netbanking Express",
+                                    fontSize = 9.sp,
+                                    color = if (selectedGateway == "PayU") Color.White.copy(alpha = 0.7f) else adaptiveSlate600()
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Billing Detail Card
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        ),
+                        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Subscription Product:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(details.planLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Base SaaS Premium Cost:", fontSize = 10.sp, color = adaptiveSlate600())
+                                Text("₹${String.format("%.2f", basePrice)}", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("CGST + SGST (18.00% Govt Tax):", fontSize = 10.sp, color = adaptiveSlate600())
+                                Text("₹${String.format("%.2f", gst)}", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Total Amount Payable:", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                                Text("₹${String.format("%.2f", totalPayable)}", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (!isProcessing) {
+                        // Payment Method Hub
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Button(
+                                onClick = { selectedMethod = "CARD" },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedMethod == "CARD") MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (selectedMethod == "CARD") MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.weight(1f).testTag("select_card_method")
+                            ) {
+                                Icon(Icons.Default.CreditCard, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Cards", fontSize = 10.sp)
+                            }
+
+                            Button(
+                                onClick = { selectedMethod = "UPI" },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedMethod == "UPI") MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (selectedMethod == "UPI") MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.weight(1f).testTag("select_upi_method")
+                            ) {
+                                Icon(Icons.Default.PhoneAndroid, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("UPI App", fontSize = 10.sp)
+                            }
+
+                            Button(
+                                onClick = { selectedMethod = "NETBANKING" },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedMethod == "NETBANKING") MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (selectedMethod == "NETBANKING") MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.weight(1f).testTag("select_netbanking_method")
+                            ) {
+                                Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Net Bank", fontSize = 10.sp)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Render Fields based on selected Payment Mode
+                        when (selectedMethod) {
+                            "CARD" -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // Visual credit card preview
+                                    Card(
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(130.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (selectedGateway == "Razorpay") Color(0xFF152A4A) else Color(0xFF2C4927)
+                                        )
+                                    ) {
+                                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Text(
+                                                    if (selectedGateway == "Razorpay") "Razorpay Checkout" else "PayU Express Checkout",
+                                                    color = Color.White.copy(alpha = 0.8f),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Icon(
+                                                    Icons.Default.Lock,
+                                                    contentDescription = null,
+                                                    tint = Color.White.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                            
+                                            // Simulated Smart Chip
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(22.dp, 16.dp)
+                                                    .background(Color(0xFFFFD54F), RoundedCornerShape(2.dp))
+                                            )
+
+                                            val displayCard = if (cardNumber.isEmpty()) "XXXX XXXX XXXX XXXX" else {
+                                                cardNumber.chunked(4).joinToString(" ")
+                                            }
+                                            Text(
+                                                displayCard,
+                                                color = Color.White,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontFamily = FontFamily.Monospace,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Column(modifier = Modifier.weight(1.5f)) {
+                                                    Text("CARD HOLDER", color = Color.White.copy(alpha = 0.5f), fontSize = 8.sp)
+                                                    Text(
+                                                        if (cardName.isEmpty()) "YOUR NAME" else cardName.uppercase(),
+                                                        color = Color.White,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                                    Text("EXPIRY", color = Color.White.copy(alpha = 0.5f), fontSize = 8.sp)
+                                                    Text(
+                                                        if (cardExpiry.isEmpty()) "MM/YY" else cardExpiry,
+                                                        color = Color.White,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    OutlinedTextField(
+                                        value = cardNumber,
+                                        onValueChange = { if (it.length <= 16 && it.all { char -> char.isDigit() }) cardNumber = it },
+                                        label = { Text("Card Number (16 Digits)") },
+                                        placeholder = { Text("e.g. 4312891277341256") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier.fillMaxWidth().testTag("card_number_input"),
+                                        singleLine = true
+                                    )
+
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedTextField(
+                                            value = cardExpiry,
+                                            onValueChange = { cardExpiry = it },
+                                            label = { Text("Expiry (MM/YY)") },
+                                            placeholder = { Text("28/29") },
+                                            modifier = Modifier.weight(1.2f).testTag("card_expiry_input"),
+                                            singleLine = true
+                                        )
+                                        OutlinedTextField(
+                                            value = cardCvv,
+                                            onValueChange = { if (it.length <= 3) cardCvv = it },
+                                            label = { Text("CVV") },
+                                            placeholder = { Text("***") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            visualTransformation = PasswordVisualTransformation(),
+                                            modifier = Modifier.weight(1f).testTag("card_cvv_input"),
+                                            singleLine = true
+                                        )
+                                    }
+
+                                    OutlinedTextField(
+                                        value = cardName,
+                                        onValueChange = { cardName = it },
+                                        label = { Text("Name on Credit/Debit Card") },
+                                        placeholder = { Text("Aarav Sharma") },
+                                        modifier = Modifier.fillMaxWidth().testTag("card_name_input"),
+                                        singleLine = true
+                                    )
+                                }
+                            }
+                            "UPI" -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Express Instant Mobile UPI Pay", fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                    
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedTextField(
+                                            value = upiId,
+                                            onValueChange = { upiId = it; upiVerified = false },
+                                            label = { Text("Enter Your UPI Address") },
+                                            placeholder = { Text("e.g. username@okhdfcbank") },
+                                            modifier = Modifier.weight(1.5f).testTag("upi_id_input"),
+                                            singleLine = true
+                                        )
+                                        Button(
+                                            onClick = {
+                                                if (upiId.isNotEmpty()) {
+                                                    upiVerifying = true
+                                                    scope.launch {
+                                                        delay(1000)
+                                                        upiVerifying = false
+                                                        upiVerified = true
+                                                    }
+                                                }
+                                            },
+                                            enabled = upiId.isNotEmpty() && !upiVerifying,
+                                            modifier = Modifier.align(Alignment.CenterVertically).testTag("verify_upi_btn")
+                                        ) {
+                                            if (upiVerifying) {
+                                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 1.5.dp)
+                                            } else {
+                                                Text("Verify", fontSize = 10.sp)
+                                            }
+                                        }
+                                    }
+
+                                    if (upiVerified) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("UPI Address verified: Approved Customer Account (active)", fontSize = 11.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    Text("Instant Checkout via dynamic UPI Link:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        listOf("GooglePay", "PhonePe", "PayTM", "BHIM").forEach { appName ->
+                                            Card(
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = if (selectQuickUpi == appName) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                                ),
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .border(
+                                                        1.dp,
+                                                        if (selectQuickUpi == appName) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                        RoundedCornerShape(6.dp)
+                                                    )
+                                                    .clickable { 
+                                                        selectQuickUpi = appName
+                                                        upiId = "subscriber@$appName"
+                                                        upiVerified = true
+                                                    }
+                                            ) {
+                                                Text(
+                                                    appName,
+                                                    textAlign = TextAlign.Center,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 9.sp,
+                                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "NETBANKING" -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Select Indian Banking Rail to authorize payment:", fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                                    
+                                    val banks = listOf(
+                                        "SBI" to "State Bank of India",
+                                        "HDFC" to "HDFC Bank Secure",
+                                        "ICICI" to "ICICI Banking Portal",
+                                        "AXIS" to "Axis Money Direct Exchange"
+                                    )
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        banks.forEach { (shortCode, bankName) ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(
+                                                        if (selectedBank == shortCode) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                        RoundedCornerShape(8.dp)
+                                                    )
+                                                    .border(
+                                                        width = 1.dp,
+                                                        color = if (selectedBank == shortCode) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                        shape = RoundedCornerShape(8.dp)
+                                                    )
+                                                    .clickable { selectedBank = shortCode }
+                                                    .padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                RadioButton(selected = selectedBank == shortCode, onClick = { selectedBank = shortCode })
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(bankName, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Trigger Primary action pay button
+                        Button(
+                            onClick = {
+                                isProcessing = true
+                                scope.launch {
+                                    currentStepText = "Initializing secure SSL handshake with $selectedGateway API servers..."
+                                    delay(900)
+                                    currentStepText = "Authorizing dynamic transaction payload of ₹${String.format("%.2f", totalPayable)}..."
+                                    delay(900)
+                                    currentStepText = "Connecting with NPCI Indian Banking Core Routing Node..."
+                                    delay(900)
+                                    currentStepText = "Verifying cryptographic token signatures with $selectedGateway vault..."
+                                    delay(800)
+                                    showSuccessTick = true
+                                    delay(800)
+                                    viewModel.subscribeToPlan(details.planType, details.roleName, details.basePrice, selectedGateway)
+                                    isProcessing = false
+                                    showSuccessTick = false
+                                    onDismiss()
+                                }
+                            },
+                            enabled = when (selectedMethod) {
+                                "CARD" -> cardNumber.length >= 12 && cardExpiry.isNotEmpty() && cardCvv.length == 3
+                                "UPI" -> upiId.isNotEmpty() && upiVerified
+                                "NETBANKING" -> selectedBank.isNotEmpty()
+                                else -> false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (selectedGateway == "Razorpay") Color(0xFF1E88E5) else Color(0xFF4CAF50)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("gateway_submit_payment"),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Pay ₹${String.format("%.2f", totalPayable)} via $selectedGateway",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(10.dp))
+                        
+                        TextButton(
+                            onClick = { onDismiss() },
+                            modifier = Modifier.fillMaxWidth().testTag("payment_cancel_btn")
+                        ) {
+                            Text("Cancel subscription transaction")
+                        }
+                    } else {
+                        // Rendering Interactive Transaction Success Process Progress Steps
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            if (showSuccessTick) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(72.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    "SAAS TRANSACTION SUCCESSFUL!",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF2E7D32),
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    "Allocating system licenses for $selectedGateway...",
+                                    fontSize = 11.sp,
+                                    color = adaptiveSlate600()
+                                )
+                            } else {
+                                CircularProgressIndicator(
+                                    color = if (selectedGateway == "Razorpay") Color(0xFF1E88E5) else Color(0xFF4CAF50),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    currentStepText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Do NOT click back button or close application.",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
 @Composable
 fun BillingSuiteScreen(viewModel: MarksViewModel) {
     val user = viewModel.currentUser ?: return
     val paymentList by viewModel.paymentRecords.collectAsState()
     val context = LocalContext.current
+    var showCheckoutDetails by remember { mutableStateOf<PaymentCheckoutDetails?>(null) }
+    var selectedComplianceDoc by remember { mutableStateOf<String?>(null) }
+
+    if (showCheckoutDetails != null) {
+        PaymentGatewayCheckoutDialog(
+            details = showCheckoutDetails!!,
+            viewModel = viewModel,
+            onDismiss = { showCheckoutDetails = null }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -2637,7 +3553,12 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     onClick = {
-                        viewModel.subscribeToPlan("INDIVIDUAL_PARENT_PLAN", "INDIVIDUAL_PARENT", 100.0, "Razorpay")
+                        showCheckoutDetails = PaymentCheckoutDetails(
+                            planType = "INDIVIDUAL_PARENT_PLAN",
+                            roleName = "INDIVIDUAL_PARENT",
+                            basePrice = 100.0,
+                            planLabel = "Parent Pro Tier"
+                        )
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (user.planType == "INDIVIDUAL_PARENT_PLAN") Teal500 else Blue600,
@@ -2692,7 +3613,12 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     onClick = {
-                        viewModel.subscribeToPlan("SCHOOL_PLAN", "SCHOOL_ADMIN", 10000.0, "PayU")
+                        showCheckoutDetails = PaymentCheckoutDetails(
+                            planType = "SCHOOL_PLAN",
+                            roleName = "SCHOOL_ADMIN",
+                            basePrice = 10000.0,
+                            planLabel = "School Suite Tier"
+                        )
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (user.planType == "SCHOOL_PLAN") Teal500 else Blue600,
@@ -2805,6 +3731,305 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- SECTION D: COMPLIANCE REGULATORY TRUST FOOTER ---
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "SaaS Merchant Licensing & Trust Center",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Required compliance frameworks for direct bank-rail integrations, payment settlement gateways (Razorpay, PayU), and Google Play-Store distribution guidelines.",
+                    fontSize = 10.sp,
+                    color = Slate600,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 14.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Interactive Link Grid
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // T&C Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "TC" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_tc")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Terms & Use", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Privacy Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "PRIVACY" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_privacy")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Privacy Policy", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Refunds Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "REFUND" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_refund")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Refund Policy", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Delivery Link
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedComplianceDoc = "SHIPPING" }
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .testTag("btn_compliance_shipping")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.CloudQueue, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Delivery SLA", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    // Contact & Redressal Hub
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedComplianceDoc = "CONTACT" }
+                            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                            .testTag("btn_compliance_contact")
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.SupportAgent, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Contact Customer Support Helpline", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "© 2026 EduGrade Corp. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
+                    fontSize = 8.sp,
+                    color = Slate600,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 12.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // Modal Document popup dialog renderer
+    var complianceDocToShow by remember { mutableStateOf<String?>(null) }
+    complianceDocToShow = selectedComplianceDoc
+    if (complianceDocToShow != null) {
+        AlertDialog(
+            onDismissRequest = { selectedComplianceDoc = null },
+            confirmButton = {
+                Button(
+                    onClick = { selectedComplianceDoc = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("I Understand & Accept", color = Color.White, fontSize = 11.sp)
+                }
+            },
+            title = {
+                val title = when (complianceDocToShow) {
+                    "TC" -> "Terms & Conditions of Service"
+                    "PRIVACY" -> "Privacy & Encryption Policy"
+                    "REFUND" -> "Cancellation & Refund SLA"
+                    "SHIPPING" -> "Digital Access & Delivery Policy"
+                    "CONTACT" -> "Merchant Contact Support Registry"
+                    else -> "Operational Policy Docs"
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (complianceDocToShow == "PRIVACY") Icons.Default.Security else Icons.Default.Gavel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            },
+            text = {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        when (complianceDocToShow) {
+                            "TC" -> {
+                                Text(
+                                    "Welcome to Marks Tracking SaaS Solution (internally 'EduGrade'). By registering an account and choosing a billing plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
+                                    "1. User Account Ownership Rights:\n" +
+                                    "You are responsible for keeping passwords and local credentials safe. Under the School Plan, you may provision parent sub-accounts with read-only view access of specific student records.\n\n" +
+                                    "2. Proper System Use:\n" +
+                                    "You must not decrypt database structures, disassemble system cache blocks, or inject malicious payloads on underlying cloud schemas. All educational grades represent accurate academic inputs.\n\n" +
+                                    "3. Annual Licensing Renewal:\n" +
+                                    "SaaS Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "PRIVACY" -> {
+                                Text(
+                                    "Privacy and robust data isolation are fundamental to our architecture:\n\n" +
+                                    "1. Client-Side Grade Protection:\n" +
+                                    "Academic logs, student assessment marks, and subject roll structures are isolated inside multi-tenant rows. Parents from Screen A cannot view student lists from Screen B unless a verified view-only authentication key is generated by the administrator.\n\n" +
+                                    "2. Collected Metadata:\n" +
+                                    "We store active transaction metadata and administrator contact email handles to verify compliance status. No web trackers, third-party sales cookies, or analytics scripts are bundled.\n\n" +
+                                    "3. Third Party Handshakes:\n" +
+                                    "When triggering a secure upgrade subscription, cards, CVVs, and mobile banking identifiers are processed directly over encrypted merchant channels (Razorpay and PayU).",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "REFUND" -> {
+                                Text(
+                                    "We strive to offer premium client-focused grades reporting. Please read our operational billing rollback guidelines:\n\n" +
+                                    "1. Right to Downgrade:\n" +
+                                    "Subscribers can transition or request a licensing downgrade back to the Free Plan (Rs 0.00/Yr) at any point directly from the Billing Suite controls.\n\n" +
+                                    "2. Refund Processing Timeline:\n" +
+                                    "In case of accidental duplicate payment triggers across Indian Banking Rails, a full refund representing 100% of the principal + GST is issued within 5 to 7 working business days. Credits are processed automatically back to the originating bank instrument/card/UPI address.\n\n" +
+                                    "3. Charge dispute request:\n" +
+                                    "Reach out to the registered merchant supervisor at mail@altty.com along with transaction receipt IDs.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "SHIPPING" -> {
+                                Text(
+                                    "This EduGrade application operates purely as a Software-as-a-Service (SaaS) digital delivery model:\n\n" +
+                                    "1. Instant Digital Delivery:\n" +
+                                    "There are strictly no physical books, report cards, printed documents, or CD packages shipped. Digital licensing privileges are automatically granted. Immediately when Razorpay or PayU checkout API completes successfully, your subscription model adjusts instantly, enabling premium creation modules.\n\n" +
+                                    "2. PDF Invoices:\n" +
+                                    "Tax compliant breakdowns (including 18% CGST/SGST calculations) are written to local cache stores instantly and are shareable in real-time.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                            "CONTACT" -> {
+                                Text(
+                                    "Dedicated SaaS grievance officer contact parameters:\n\n" +
+                                    "• Registered Corporate Entity: EduGrade Solutions Pvt Ltd\n" +
+                                    "• Official Regulatory Support Email: mail@altty.com\n" +
+                                    "• Support Desk Phone: +91 79815 85715\n" +
+                                    "• Corporate Office Address: 150/2RT, Vijaya Nagar Colony, HD-500057\n" +
+                                    "• General Ticketing Turnaround: Within 12 to 24 hours of receiving formal mail feedback.",
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
