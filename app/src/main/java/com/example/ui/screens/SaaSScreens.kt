@@ -1119,36 +1119,36 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "Subscription Guide & Security Directory",
+                        "Student Progress & Marks Tracking Guide",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // FREE PLAN EXPLAINER
+                // GRADE ENTRY SHEET EXPLAINER
                 Card(
                      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                      modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.List, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Free Starter Tier (Trial Profile)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Interactive Grade Entry Sheet", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "• Target Audience: Single-student home tracking families.\n" +
-                            "• Features: Designed for single-student home tracking with a preselected 7-subject template (Mathematics, Science, Social, English, Language-1, Language-2, Language-3).\n" +
-                            "• Security: Dynamic local grade vault with isolated hardware-mapped encryption key verification.",
+                            "• Purpose: Record student exam marks easily inside an Excel-style matrix across key subjects.\n" +
+                            "• Tracking Options: Log performance details across multiple exam periods, including weekly tests, termly, and annual exams.\n" +
+                            "• Multi-User Isolation: Keeps parent views and teacher editing spaces securely isolated for student safety.",
                             fontSize = 11.sp,
                             color = adaptiveSlate600()
                         )
                     }
                 }
 
-                // PARENT PLAN EXPLAINER
+                // TREND ANALYSIS EXPLAINER
                 Card(
                      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                      modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
@@ -1157,20 +1157,20 @@ fun LoginScreen(viewModel: MarksViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.SupervisedUserCircle, contentDescription = null, tint = Teal600, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Parent Pro Tier (Advanced Monitoring)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Teal600)
+                            Text("Academic Trend & Growth Analytics", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Teal600)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "• Target Audience: Families managing multi-student progress tracking.\n" +
-                            "• Features: Unlocks dynamic custom school curriculum, average trend charts, and the interactive AI Study Companion Advisor.\n" +
-                            "• Value: Complete subject customizability and auto-generated child performance improvement plans.",
+                            "• Progress Charts: Displays dynamic Canvas-drawn trends and comparative bar graphs plotting test-to-test growth.\n" +
+                            "• Proficiency Review: Instantly calculates subject average curves and highlights scores relative to grade thresholds.\n" +
+                            "• Parental Overview: Enables family sub-accounts to easily review and track multiple children's performances side by side.",
                             fontSize = 11.sp,
                             color = adaptiveSlate600()
                         )
                     }
                 }
 
-                // SCHOOL PLAN EXPLAINER
+                // AI SYSTEM EXPLAINER
                 Card(
                      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                      modifier = Modifier.fillMaxWidth()
@@ -1179,13 +1179,13 @@ fun LoginScreen(viewModel: MarksViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.School, contentDescription = null, tint = Blue600, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("School Suite Tier (Institutional Gateway)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Blue600)
+                            Text("AI Study Advisory & Improvement Companion", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Blue600)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "• Target Audience: Institutional school admins, teachers, and school systems.\n" +
-                            "• Features: Provides bulk actions like CSV Grade Sheet uploading, isolated tenant sub-domains, and delegated sub-parent viewer account registration.\n" +
-                            "• Isolation Architecture: Secures and splits student directory operations into hardware-enforced dynamic tenant zones.",
+                            "• Diagnostic Insights: Standard one-tap checks instantly highlight weak subjects and performance flags under 40%.\n" +
+                            "• AI Recommendations: Powered by the integrated Gemini Companion to outline localized curriculum study guides.\n" +
+                            "• Interactive Support: Allows customized scheduling and specific skill practices to help kids improve test scores progressively.",
                             fontSize = 11.sp,
                             color = adaptiveSlate600()
                         )
@@ -1279,7 +1279,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "SaaS Merchant Licensing & Trust Center",
+                        text = "Student Academic Performance & Marks Tracking Center",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary
@@ -1287,7 +1287,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Required compliance frameworks for direct bank-rail integrations, payment settlement gateways (Razorpay, PayU), and Google Play-Store distribution guidelines.",
+                    text = "Authorized school portal for student academic registers, progress record transparency, secure grade ledger isolation, and parent-teacher information frameworks.",
                     fontSize = 10.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -2085,8 +2085,57 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                 onDismissRequest = { showImportDialog = false },
                 title = { Text("CSV Bulk Import Sandbox", fontWeight = FontWeight.Bold) },
                 text = {
-                    Column {
-                        Text("Option 1: Upload a CSV file from your mobile storage", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
+                    val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
+                    val sampleHeaders = "RollNo,StudentName,Subject,${exams.joinToString(",")},ParentEmail"
+                    val sampleRows = "101,Aarav Sharma,Mathematics,${exams.map { "85" }.joinToString(",")},aarav.parent@example.com\n" +
+                                     "101,Aarav Sharma,Science,${exams.map { "78" }.joinToString(",")},aarav.parent@example.com\n" +
+                                     "102,Diya Patel,Mathematics,${exams.map { "92" }.joinToString(",")},diya.parent@example.com"
+                    val fullSampleCsv = "$sampleHeaders\n$sampleRows"
+                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text("Option 1: Download or Copy Sample CSV Template", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
+                        
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = "Headers: $sampleHeaders",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = sampleRows,
+                                    fontSize = 9.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    color = adaptiveSlate600(),
+                                    lineHeight = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        clipboardManager.setText(androidx.compose.ui.text.buildAnnotatedString { append(fullSampleCsv) })
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    modifier = Modifier.fillMaxWidth().height(36.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Copy CSV Template to Clipboard", fontSize = 10.sp, color = Color.White)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text("Option 2: Upload a CSV file from storage", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
                         
                         Button(
                             onClick = { filePickerLauncher.launch("*/*") },
@@ -2101,15 +2150,14 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                             Text("Select CSV File from Storage", color = Color.White)
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("Option 2: Paste spreadsheet values formatted exactly in CSV structures:", fontSize = 11.sp, color = adaptiveSlate600())
-                        Text("Headers required: RollNo,StudentName,Subject,Weekly,Monthly,Quarterly,Half-Yearly,Annual", fontSize = 11.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Option 3: Paste values directly in CSV structures:", fontSize = 11.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(6.dp))
                         
                         OutlinedTextField(
                             value = csvText,
                             onValueChange = { csvText = it },
-                            placeholder = { Text("101,Aarav Sharma,Mathematics,85,90,88,82,92\n101,Aarav Sharma,Science,78,85,80,75,88\n102,Diya Patel,Mathematics,92,94,90,95,98") },
+                            placeholder = { Text(fullSampleCsv) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(130.dp)
@@ -2428,7 +2476,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 ) {
                     val width = size.width
                     val height = size.height
-                    val spacing = width / (exams.size - 1)
+                    val spacing = if (exams.size > 1) width / (exams.size - 1) else width
 
                     // Draw grid lines
                     for (gridIdx in 0..4) {
@@ -2447,33 +2495,35 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                         height - (yRatio.toFloat() * height)
                     }
 
-                    val path = Path().apply {
-                        moveTo(0f, points[0])
-                        for (pIdx in 1 until points.size) {
-                            lineTo(pIdx * spacing, points[pIdx])
+                    if (points.isNotEmpty()) {
+                        val path = Path().apply {
+                            moveTo(0f, points[0])
+                            for (pIdx in 1 until points.size) {
+                                lineTo(pIdx * spacing, points[pIdx])
+                            }
                         }
-                    }
 
-                    // Stroke Path
-                    drawPath(
-                        path = path,
-                        color = Blue500,
-                        style = Stroke(width = 6f)
-                    )
+                        // Stroke Path
+                        drawPath(
+                            path = path,
+                            color = Blue500,
+                            style = Stroke(width = 6f)
+                        )
 
-                    // Draw points circles & values
-                    points.forEachIndexed { pIdx, yPos ->
-                        val xPos = pIdx * spacing
-                        drawCircle(
-                            color = Teal500,
-                            radius = 10f,
-                            center = Offset(xPos, yPos)
-                        )
-                        drawCircle(
-                            color = Color.White,
-                            radius = 5f,
-                            center = Offset(xPos, yPos)
-                        )
+                        // Draw points circles & values
+                        points.forEachIndexed { pIdx, yPos ->
+                            val xPos = pIdx * spacing
+                            drawCircle(
+                                color = Teal500,
+                                radius = 10f,
+                                center = Offset(xPos, yPos)
+                            )
+                            drawCircle(
+                                color = Color.White,
+                                radius = 5f,
+                                center = Offset(xPos, yPos)
+                            )
+                        }
                     }
                 }
 
@@ -2613,7 +2663,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     val width = size.width
                     val height = size.height
                     val barWidth = 45.dp.toPx()
-                    val spacing = width / exams.size
+                    val spacing = if (exams.isNotEmpty()) width / exams.size else width
 
                     trendScores.forEachIndexed { idx, score ->
                         val barHeight = (score / 100.0).toFloat() * height
@@ -3762,7 +3812,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "SaaS Merchant Licensing & Trust Center",
+                        text = "Student Academic Performance & Marks Tracking Center",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary
@@ -3770,7 +3820,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Required compliance frameworks for direct bank-rail integrations, payment settlement gateways (Razorpay, PayU), and Google Play-Store distribution guidelines.",
+                    text = "Authorized school portal for student academic registers, progress record transparency, secure grade ledger isolation, and parent-teacher information frameworks.",
                     fontSize = 10.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,

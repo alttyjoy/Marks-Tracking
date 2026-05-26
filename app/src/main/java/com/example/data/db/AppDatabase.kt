@@ -152,7 +152,7 @@ interface PaymentRecordDao {
         PaymentRecord::class,
         TestType::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

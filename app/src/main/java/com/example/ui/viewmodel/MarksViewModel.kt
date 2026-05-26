@@ -23,6 +23,7 @@ import com.example.util.PdfInvoiceGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Seeding guard to prevent duplicate concurrent setups ---
     private val seedingTenancies = mutableSetOf<String>()
+    private var isSeedingAdmin = false
 
     // --- Active Database Flow Collection Jobs to Prevent Coroutine Leaks ---
     private var studentsJob: Job? = null
@@ -186,53 +188,63 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun observeConfig() {
         viewModelScope.launch {
-            repository.appConfig.collect { config ->
-                if (config == null) {
-                    val defaultConfig = AppConfig(
-                        dbHost = "jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432",
-                        dbName = "marks_tracking_saas",
-                        dbUser = "postgres_admin",
-                        dbPass = "SuperSecureDbPass*2026",
-                        smtpHost = "smtp.marks-tracking.saas.com",
-                        smtpPort = "587",
-                        smtpUser = "alerts@markstracking.saas",
-                        smtpPass = "SMTP_GatewayPass#99",
-                        gatewayKey = "rzp_test_N2hK91xf8YwPLz",
-                        gatewaySecret = "sec_test_JKX816f0q71p9x",
-                        gatewayType = "Razorpay",
-                        adminName = "Super Administrator",
-                        adminEmail = "admin@school.edu.in",
-                        adminPassHash = "SchoolAdmin123!".sha256(),
-                        setupComplete = true
-                    )
-                    repository.saveAppConfig(defaultConfig)
-                    setSetupComplete(true)
-                } else {
-                    currentConfig = config
-                    if (config.setupComplete) {
-                        setSetupComplete(true)
-                    }
-                    if (isConfigured && currentUser == null) {
-                        val fallbackSession = loadUserSession()
-                        if (fallbackSession != null) {
-                            currentUser = fallbackSession
-                            csrfToken = UUID.randomUUID().toString()
-                            observeCoreData()
+            repository.appConfig
+                .catch { e -> e.printStackTrace() }
+                .collect { config ->
+                    try {
+                        if (config == null) {
+                            val defaultConfig = AppConfig(
+                                dbHost = "jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432",
+                                dbName = "marks_tracking_saas",
+                                dbUser = "postgres_admin",
+                                dbPass = "SuperSecureDbPass*2026",
+                                smtpHost = "smtp.marks-tracking.saas.com",
+                                smtpPort = "587",
+                                smtpUser = "alerts@markstracking.saas",
+                                smtpPass = "SMTP_GatewayPass#99",
+                                gatewayKey = "rzp_test_N2hK91xf8YwPLz",
+                                gatewaySecret = "sec_test_JKX816f0q71p9x",
+                                gatewayType = "Razorpay",
+                                adminName = "Super Administrator",
+                                adminEmail = "admin@school.edu.in",
+                                adminPassHash = "SchoolAdmin123!".sha256(),
+                                setupComplete = true
+                            )
+                            repository.saveAppConfig(defaultConfig)
+                            setSetupComplete(true)
                         } else {
-                            // Pre-generate standard admin user credentials to allow easy bypass
-                            seedAdminUser(config)
+                            currentConfig = config
+                            if (config.setupComplete) {
+                                setSetupComplete(true)
+                            }
+                            if (isConfigured && currentUser == null) {
+                                val fallbackSession = loadUserSession()
+                                if (fallbackSession != null && fallbackSession.email.isNotEmpty()) {
+                                    currentUser = fallbackSession
+                                    csrfToken = UUID.randomUUID().toString()
+                                    observeCoreData()
+                                } else {
+                                    if (!isSeedingAdmin) {
+                                        // Pre-generate standard admin user credentials to allow easy bypass
+                                        seedAdminUser(config)
+                                    }
+                                }
+                            }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                 }
-            }
         }
     }
 
     private suspend fun seedAdminUser(config: AppConfig) {
-        val adminUser = repository.getUserByEmail(config.adminEmail)
-        if (adminUser == null) {
-            repository.insertUser(
-                UserAccount(
+        if (isSeedingAdmin) return
+        isSeedingAdmin = true
+        try {
+            var adminUser = repository.getUserByEmail(config.adminEmail)
+            if (adminUser == null) {
+                val newUser = UserAccount(
                     name = config.adminName,
                     email = config.adminEmail,
                     passwordHash = config.adminPassHash, // Already hashed
@@ -240,12 +252,25 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                     planType = "SCHOOL_PLAN",
                     schoolId = "SCH-ADM-1"
                 )
-            )
-        } else {
-            // If the password hash does not match, repair it (e.g. from previous double-hash)
-            if (adminUser.passwordHash != config.adminPassHash) {
-                repository.insertUser(adminUser.copy(passwordHash = config.adminPassHash))
+                val newId = repository.insertUser(newUser)
+                adminUser = newUser.copy(id = newId)
+            } else {
+                // If the password hash does not match, repair it (e.g. from previous double-hash)
+                if (adminUser.passwordHash != config.adminPassHash) {
+                    val updatedUser = adminUser.copy(passwordHash = config.adminPassHash)
+                    repository.insertUser(updatedUser)
+                    adminUser = updatedUser
+                }
             }
+            
+            // Always sign in to ensure the application is active and shown immediately
+            saveUserSession(adminUser)
+            csrfToken = java.util.UUID.randomUUID().toString()
+            observeCoreData()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isSeedingAdmin = false
         }
     }
 
@@ -263,40 +288,62 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
             // Respect Row-Level Security based on roles
             when (user.role) {
                 "SUPER_ADMIN" -> {
-                    repository.getAllStudents().collect {
-                        _studentsList.value = it
-                        if (selectedStudent == null && it.isNotEmpty()) {
-                            selectStudent(it.first())
+                    repository.getAllStudents()
+                        .catch { e -> e.printStackTrace() }
+                        .collect {
+                            try {
+                                _studentsList.value = it
+                                if (selectedStudent == null && it.isNotEmpty()) {
+                                    selectStudent(it.first())
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
-                    }
                 }
                 "SCHOOL_ADMIN" -> {
-                    repository.getAllStudentsBySchool(user.schoolId).collect {
-                        _studentsList.value = it
-                        if (selectedStudent == null && it.isNotEmpty()) {
-                            selectStudent(it.first())
+                    repository.getAllStudentsBySchool(user.schoolId)
+                        .catch { e -> e.printStackTrace() }
+                        .collect {
+                            try {
+                                _studentsList.value = it
+                                if (selectedStudent == null && it.isNotEmpty()) {
+                                    selectStudent(it.first())
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
-                    }
                 }
                 "INDIVIDUAL_PARENT" -> {
-                    repository.getAllStudentsByParent(user.id).collect {
-                        _studentsList.value = it
-                        if (selectedStudent == null && it.isNotEmpty()) {
-                            selectStudent(it.first())
+                    repository.getAllStudentsByParent(user.id)
+                        .catch { e -> e.printStackTrace() }
+                        .collect {
+                            try {
+                                _studentsList.value = it
+                                if (selectedStudent == null && it.isNotEmpty()) {
+                                    selectStudent(it.first())
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
-                    }
                 }
                 "VIEW_ONLY_PARENT" -> {
-                    val childId = user.associatedStudentId
-                    if (childId != null) {
-                        val child = repository.getStudentById(childId)
-                        val singleChildList = if (child != null) listOf(child) else emptyList()
-                        _studentsList.value = singleChildList
-                        if (child != null) {
-                            selectStudent(child)
+                    try {
+                        val childId = user.associatedStudentId
+                        if (childId != null) {
+                            val child = repository.getStudentById(childId)
+                            val singleChildList = if (child != null) listOf(child) else emptyList()
+                            _studentsList.value = singleChildList
+                            if (child != null) {
+                                selectStudent(child)
+                            }
+                        } else {
+                            _studentsList.value = emptyList()
                         }
-                    } else {
-                        _studentsList.value = emptyList()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                 }
             }
@@ -324,14 +371,20 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 else -> user.id.toString() // INDIVIDUAL_PARENT
             }
-            repository.getSubjects(belongsToId).collect {
-                // If subjects are empty, preseed standard ones for beautiful user experience
-                if (it.isEmpty()) {
-                    seedDefaultSubjects(belongsToId)
-                } else {
-                    _subjectsList.value = it
+            repository.getSubjects(belongsToId)
+                .catch { e -> e.printStackTrace() }
+                .collect {
+                    try {
+                        // If subjects are empty, preseed standard ones for beautiful user experience
+                        if (it.isEmpty()) {
+                            seedDefaultSubjects(belongsToId)
+                        } else {
+                            _subjectsList.value = it
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
         }
 
         testTypesJob = viewModelScope.launch {
@@ -356,26 +409,44 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 else -> user.id.toString()
             }
-            repository.getTestTypes(belongsToId).collect {
-                if (it.isEmpty()) {
-                    seedDefaultTestTypes(belongsToId)
-                } else {
-                    _testTypesList.value = it
+            repository.getTestTypes(belongsToId)
+                .catch { e -> e.printStackTrace() }
+                .collect {
+                    try {
+                        if (it.isEmpty()) {
+                            seedDefaultTestTypes(belongsToId)
+                        } else {
+                            _testTypesList.value = it
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
         }
 
         paymentsJob = viewModelScope.launch {
-            repository.getPaymentsForUser(user.id).collect {
-                _paymentRecords.value = it
-            }
+            repository.getPaymentsForUser(user.id)
+                .catch { e -> e.printStackTrace() }
+                .collect {
+                    try {
+                        _paymentRecords.value = it
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
         }
 
         subParentsJob = viewModelScope.launch {
             if (user.role == "SCHOOL_ADMIN") {
-                repository.getAssociatedParents(user.id).collect {
-                    _subParentsList.value = it
-                }
+                repository.getAssociatedParents(user.id)
+                    .catch { e -> e.printStackTrace() }
+                    .collect {
+                        try {
+                            _subParentsList.value = it
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
             }
         }
     }
@@ -390,6 +461,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 defaults.forEach {
                     repository.insertSubject(Subject(name = it, belongsToId = belongsToId))
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             } finally {
                 seedingTenancies.remove(leaseKey)
             }
@@ -421,6 +494,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 defaults.forEach {
                     repository.insertTestType(TestType(name = it, belongsToId = belongsToId))
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             } finally {
                 seedingTenancies.remove(leaseKey)
             }
@@ -462,7 +537,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 repository.saveAppConfig(config)
                 setSetupComplete(true)
                 setupError = null
-                actionMessage = "Setup complete! Log in with admin credentials."
+                actionMessage = "Setup complete! Logged in as administrator automatically."
+                seedAdminUser(config)
             } catch (e: Exception) {
                 setupError = "Failed to save configuration: ${e.message}"
             }
@@ -978,32 +1054,38 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         gridMarks.clear()
         marksCollectionJob?.cancel()
         marksCollectionJob = viewModelScope.launch {
-            repository.getMarksForStudent(student.id).collect { list ->
-                _marksList.value = list
-                list.forEach { mark ->
-                    gridMarks["${mark.subjectId}_${mark.examType}"] = mark.marksObtained.toString()
+            repository.getMarksForStudent(student.id)
+                .catch { e -> e.printStackTrace() }
+                .collect { list ->
+                    _marksList.value = list
+                    list.forEach { mark ->
+                        gridMarks["${mark.subjectId}_${mark.examType}"] = mark.marksObtained.toString()
+                    }
                 }
-            }
         }
         if (currentUser?.role == "SUPER_ADMIN") {
             val belongsToId = if (student.schoolId.isNotEmpty()) student.schoolId else student.parentId?.toString() ?: "SUPER"
             viewModelScope.launch {
-                repository.getSubjects(belongsToId).collect {
-                    if (it.isEmpty()) {
-                        seedDefaultSubjects(belongsToId)
-                    } else {
-                        _subjectsList.value = it
+                repository.getSubjects(belongsToId)
+                    .catch { e -> e.printStackTrace() }
+                    .collect {
+                        if (it.isEmpty()) {
+                            seedDefaultSubjects(belongsToId)
+                        } else {
+                            _subjectsList.value = it
+                        }
                     }
-                }
             }
             viewModelScope.launch {
-                repository.getTestTypes(belongsToId).collect {
-                    if (it.isEmpty()) {
-                        seedDefaultTestTypes(belongsToId)
-                    } else {
-                        _testTypesList.value = it
+                repository.getTestTypes(belongsToId)
+                    .catch { e -> e.printStackTrace() }
+                    .collect {
+                        if (it.isEmpty()) {
+                            seedDefaultTestTypes(belongsToId)
+                        } else {
+                            _testTypesList.value = it
+                        }
                     }
-                }
             }
         }
     }
@@ -1122,6 +1204,32 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                         studentObj = Student(id = newStudId, encryptedName = encName, rollNo = rollNo, schoolId = schoolIdVal, parentId = parentIdVal)
                     }
 
+                    // --- Auto-provision Parent User Account if ParentEmail is provided in CSV ---
+                    val activeTestTypes = repository.getTestTypesSync(belongsToId)
+                    val exams = activeTestTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
+                    val parentEmailIdx = 3 + exams.size
+                    val parentEmail = if (parentEmailIdx < cols.size) cols[parentEmailIdx].trim() else ""
+                    if (parentEmail.isNotEmpty() && parentEmail.contains("@") && user.role == "SCHOOL_ADMIN") {
+                        val existingParent = repository.getUserByEmail(parentEmail)
+                        if (existingParent == null) {
+                            val autoParent = UserAccount(
+                                name = "Parent of $studName",
+                                email = parentEmail,
+                                passwordHash = "Pass123",
+                                role = "VIEW_ONLY_PARENT",
+                                planType = "FREE",
+                                schoolId = user.schoolId,
+                                associatedStudentId = studentObj.id,
+                                belongsToOwnerId = user.id
+                            )
+                            repository.insertUser(autoParent)
+                        } else {
+                            if (existingParent.associatedStudentId != studentObj.id) {
+                                repository.insertUser(existingParent.copy(associatedStudentId = studentObj.id))
+                            }
+                        }
+                    }
+
                     // 2. Get or Add subject
                     var subjectObj = activeSubjects.find { it.name.equals(subjName, true) }
                     if (subjectObj == null) {
@@ -1130,8 +1238,6 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     // 3. Dynamic Import Marks for active test configurations
-                    val activeTestTypes = repository.getTestTypesSync(belongsToId)
-                    val exams = activeTestTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
                     for (eIdx in exams.indices) {
                         val colIdx = 3 + eIdx
                         if (colIdx < cols.size) {

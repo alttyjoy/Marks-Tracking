@@ -17,19 +17,19 @@ import java.security.MessageDigest
 
 // --- Database Provider Singleton ---
 object DatabaseProvider {
+    @Volatile
     private var instance: AppDatabase? = null
 
     fun getDatabase(context: Context): AppDatabase {
         return instance ?: synchronized(this) {
-            val db = Room.databaseBuilder(
+            instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
                 "marks_tracking_db"
             )
             .fallbackToDestructiveMigration()
-            .build()
-            instance = db
-            db
+            .fallbackToDestructiveMigrationOnDowngrade()
+            .build().also { instance = it }
         }
     }
 }
