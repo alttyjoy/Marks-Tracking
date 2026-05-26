@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -80,133 +81,254 @@ enum class AppScreen {
 }
 
 @Composable
+fun CustomSplashScreen(onTimeout: () -> Unit) {
+    var startAnimation by remember { mutableStateOf(false) }
+    
+    // Scale and alpha animation values
+    val scale by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0.5f,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "scale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        label = "alpha"
+    )
+
+    LaunchedEffect(key1 = true) {
+        startAnimation = true
+        delay(2200) // 2.2 seconds display
+        onTimeout()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0F172A), // Slate900
+                        Color(0xFF1E1E38), // Deep purple-blue
+                        Color(0xFF261C45)  // Purple accent
+                    )
+                )
+            )
+            .testTag("custom_splash_screen"),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Image(
+                painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.img_app_icon_1779790784801),
+                contentDescription = "EduGrade Logo",
+                modifier = Modifier
+                    .size(160.dp)
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        alpha = alpha
+                    )
+                    .clip(RoundedCornerShape(32.dp))
+                    .border(2.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(32.dp)),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text(
+                text = "EduGrade",
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                ),
+                modifier = Modifier.graphicsLayer(alpha = alpha)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "SaaS Marks Tracking & School Analytics",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                ),
+                modifier = Modifier.graphicsLayer(alpha = alpha)
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            Box(
+                modifier = Modifier
+                    .width(100.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.15f))
+            ) {
+                var loadingProgress by remember { mutableStateOf(0f) }
+                LaunchedEffect(key1 = true) {
+                    while (true) {
+                        loadingProgress = 0f
+                        delay(200)
+                        loadingProgress = 1f
+                        delay(1000)
+                    }
+                }
+                val animProgress by animateFloatAsState(
+                    targetValue = loadingProgress,
+                    animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+                    label = "progress"
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(animProgress)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color(0xFF38BDF8), Color(0xFFC084FC))
+                            )
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun AppNavigationShell(viewModel: MarksViewModel) {
+    var showSplashScreen by remember { mutableStateOf(true) }
     val isConfigured = viewModel.isConfigured
     val currentUser = viewModel.currentUser
     var activeStateScreen by remember { mutableStateOf(AppScreen.DATA_ENTRY_GRID) }
     var showTopProfileDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("app_navigation_scaffold"),
-        topBar = {
-            if (isConfigured && currentUser != null) {
-                Card(
-                    shape = RoundedCornerShape(0.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+    if (showSplashScreen) {
+        CustomSplashScreen(onTimeout = { showSplashScreen = false })
+    } else {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("app_navigation_scaffold"),
+            topBar = {
+                if (isConfigured && currentUser != null) {
+                    Card(
+                        shape = RoundedCornerShape(0.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        // Profile trigger
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clickable { showTopProfileDialog = true }
-                                .padding(vertical = 4.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = "View Profile Info",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = currentUser.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "${currentUser.role.replace("_", " ")} | Tap for Profile",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-
-                        // Right actions (Theme toggle & Logout)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = {
-                                    val nextMode = if (viewModel.themeMode == "DARK") "LIGHT" else "DARK"
-                                    viewModel.updateThemeMode(nextMode)
-                                },
-                                modifier = Modifier.testTag("top_navigation_theme_toggle_button")
-                            ) {
-                                val icon = if (viewModel.themeMode == "DARK") Icons.Default.Brightness4 else Icons.Default.Brightness7
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = "Theme: ${viewModel.themeMode}",
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            IconButton(
-                                onClick = { viewModel.executeLogout() },
-                                modifier = Modifier.testTag("app_logout_btn")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clickable { showTopProfileDialog = true }
+                                    .padding(vertical = 4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Logout,
-                                    contentDescription = "Log out",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(24.dp)
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = "View Profile Info",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = currentUser.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${currentUser.role.replace("_", " ")} | Tap for Profile",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = {
+                                        val nextMode = if (viewModel.themeMode == "DARK") "LIGHT" else "DARK"
+                                        viewModel.updateThemeMode(nextMode)
+                                    },
+                                    modifier = Modifier.testTag("top_navigation_theme_toggle_button")
+                                ) {
+                                    val icon = if (viewModel.themeMode == "DARK") Icons.Default.Brightness4 else Icons.Default.Brightness7
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = "Theme: ${viewModel.themeMode}",
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(4.dp))
+
+                                IconButton(
+                                    onClick = { viewModel.executeLogout() },
+                                    modifier = Modifier.testTag("app_logout_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Logout,
+                                        contentDescription = "Log out",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
-        },
-        bottomBar = {
-            if (isConfigured && currentUser != null) {
-                BottomNavigationBar(
-                    activeScreen = activeStateScreen,
-                    onNavigate = { activeStateScreen = it },
-                    role = currentUser.role
-                )
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (!isConfigured) {
-                SetupWizardScreen(viewModel)
-            } else if (currentUser == null) {
-                LoginScreen(viewModel)
-            } else {
-                if (showTopProfileDialog) {
-                    UserProfileDialog(
-                        user = currentUser,
-                        viewModel = viewModel,
-                        onDismiss = { showTopProfileDialog = false }
+            },
+            bottomBar = {
+                if (isConfigured && currentUser != null) {
+                    BottomNavigationBar(
+                        activeScreen = activeStateScreen,
+                        onNavigate = { activeStateScreen = it },
+                        role = currentUser.role
                     )
                 }
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                if (!isConfigured) {
+                    SetupWizardScreen(viewModel)
+                } else if (currentUser == null) {
+                    LoginScreen(viewModel)
+                } else {
+                    if (showTopProfileDialog) {
+                        UserProfileDialog(
+                            user = currentUser,
+                            viewModel = viewModel,
+                            onDismiss = { showTopProfileDialog = false }
+                        )
+                    }
 
-                when (activeStateScreen) {
-                    AppScreen.DATA_ENTRY_GRID -> DataEntryGridScreen(viewModel)
-                    AppScreen.ANALYTICS -> AdvancedAnalyticsScreen(viewModel)
-                    AppScreen.BILLING_SUITE -> BillingSuiteScreen(viewModel)
-                    AppScreen.PARENT_SUB_ACCOUNTS -> ParentSubAccountsScreen(viewModel)
-                    else -> DataEntryGridScreen(viewModel)
+                    when (activeStateScreen) {
+                        AppScreen.DATA_ENTRY_GRID -> DataEntryGridScreen(viewModel)
+                        AppScreen.ANALYTICS -> AdvancedAnalyticsScreen(viewModel)
+                        AppScreen.BILLING_SUITE -> BillingSuiteScreen(viewModel)
+                        AppScreen.PARENT_SUB_ACCOUNTS -> ParentSubAccountsScreen(viewModel)
+                        else -> DataEntryGridScreen(viewModel)
+                    }
                 }
             }
         }
