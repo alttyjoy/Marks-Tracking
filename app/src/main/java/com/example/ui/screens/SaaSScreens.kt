@@ -736,6 +736,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var selectedComplianceDoc by remember { mutableStateOf<String?>(null) }
+    var showGuideInline by remember { mutableStateOf(false) }
 
     // Tab control: 0 = Login, 1 = Register
     var activeTab by remember { mutableStateOf(0) }
@@ -1249,7 +1250,15 @@ fun LoginScreen(viewModel: MarksViewModel) {
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        AnimatedVisibility(visible = showGuideInline) {
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))
+                HowToUseAndFAQSection(expandedByDefault = true)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -1411,6 +1420,28 @@ fun LoginScreen(viewModel: MarksViewModel) {
                             Text("Contact Customer Support Helpline", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
+
+                    // Guide on Tracking Marks and FAQs
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showGuideInline = !showGuideInline }
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .testTag("btn_compliance_guide_login")
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.HelpOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Guide on Tracking Marks & FAQs", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -1452,11 +1483,12 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     "REFUND" -> "Cancellation & Refund SLA"
                     "SHIPPING" -> "Digital Access & Delivery Policy"
                     "CONTACT" -> "Merchant Contact Support Registry"
+                    "GUIDE" -> "Guide on Tracking Marks & FAQs"
                     else -> "Operational Policy Docs"
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = if (complianceDocToShow == "PRIVACY") Icons.Default.Security else Icons.Default.Gavel,
+                        imageVector = if (complianceDocToShow == "PRIVACY") Icons.Default.Security else if (complianceDocToShow == "GUIDE") Icons.Default.HelpOutline else Icons.Default.Gavel,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
@@ -1541,6 +1573,9 @@ fun LoginScreen(viewModel: MarksViewModel) {
                                     fontSize = 10.sp,
                                     lineHeight = 14.sp
                                 )
+                            }
+                            "GUIDE" -> {
+                                HowToUseAndFAQSection(expandedByDefault = true)
                             }
                         }
                     }
@@ -2077,6 +2112,10 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                     Text("Update Marks")
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            HowToUseAndFAQSection(expandedByDefault = true)
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // Floating Dialog Bulk Import Sheet overlay
@@ -2781,6 +2820,10 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        HowToUseAndFAQSection(expandedByDefault = true)
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -3828,6 +3871,10 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
 
+                Spacer(modifier = Modifier.height(8.dp))
+                HowToUseAndFAQSection()
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Interactive Link Grid
@@ -3944,6 +3991,28 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                             Text("Contact Customer Support Helpline", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
+
+                    // Guide on Tracking Marks and FAQs
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedComplianceDoc = "GUIDE" }
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .testTag("btn_compliance_guide")
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.HelpOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Guide on Tracking Marks & FAQs", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -3985,11 +4054,12 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                     "REFUND" -> "Cancellation & Refund SLA"
                     "SHIPPING" -> "Digital Access & Delivery Policy"
                     "CONTACT" -> "Merchant Contact Support Registry"
+                    "GUIDE" -> "Guide on Tracking Marks & FAQs"
                     else -> "Operational Policy Docs"
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = if (complianceDocToShow == "PRIVACY") Icons.Default.Security else Icons.Default.Gavel,
+                        imageVector = if (complianceDocToShow == "PRIVACY") Icons.Default.Security else if (complianceDocToShow == "GUIDE") Icons.Default.HelpOutline else Icons.Default.Gavel,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
@@ -4074,6 +4144,9 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                                     fontSize = 10.sp,
                                     lineHeight = 14.sp
                                 )
+                            }
+                            "GUIDE" -> {
+                                HowToUseAndFAQSection(expandedByDefault = true)
                             }
                         }
                     }
@@ -4223,6 +4296,197 @@ fun ParentSubAccountsScreen(viewModel: MarksViewModel) {
                             Icon(Icons.Default.LockClock, contentDescription = null, tint = Slate600)
                         }
                     }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        HowToUseAndFAQSection(expandedByDefault = true)
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+fun HowToUseAndFAQSection(expandedByDefault: Boolean = true) {
+    var rootExpanded by remember { mutableStateOf(expandedByDefault) }
+    
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .testTag("how_to_use_root_card")
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { rootExpanded = !rootExpanded }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Kids & Parents Guide: How to Use Marks Tracking",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Icon(
+                    imageVector = if (rootExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (rootExpanded) "Collapse Guide" else "Expand Guide",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            AnimatedVisibility(visible = rootExpanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = "Welcome to Marks Tracking! 🌟 This is your smart school grade journal on screen. It helps your parents and teachers see how well you are learning and growing in all your subjects!",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 16.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "👣 Step-by-Step Walkthrough Guide",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    val steps = listOf(
+                        "1. Logging In 🔑" to "Type your school email and access key, then tap the 'Login' button. If you are exploring, click 'Parent Demo' or 'Admin Demo' to sign in instantly!",
+                        "2. School Admin: Organizing Student Directory 🏫" to "The school system administrator can add student records, select their classes/grades, modify profiles, and delete them when needed.",
+                        "3. School Admin: Bulk Access Uploads 📂" to "The Admin can upload an entire class rosters spreadsheet at once using the 'CSV Bulk Upload' tool. This makes setup very quick!",
+                        "4. Entering Student Scores ✍️" to "School supervisors go to the spreadsheet grid, find the correct student's box for a subject and exam type, click inside, write the score, and tap 'Save Changes'!",
+                        "5. Parents: Quick Family Dashboard 🧑‍🧑‍🧒" to "Parents get an direct view-only panel. They click their child's name to automatically load all standard charts and grades.",
+                        "6. Parents: Reviewing Line Graphs & Progress 📈" to "Tap the 'Academic Analytics' tab to inspect colorful line charts representing progress peaks, averages, and comparative bar graphs plotting test scores over time.",
+                        "7. Everyone: AI Study Advisory Helper 🤖" to "If a score is below 40%, the smart Gemini Companion highlights weak areas and creates custom, 15-minute weekly drill recommendations.",
+                        "8. Parents: Downloading PDF Report Cards 📄" to "Under billing records, parents can download and print official progress card PDFs to pin on a room study desk!"
+                    )
+                    
+                    steps.forEach { (stepTitle, stepDesc) ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = stepTitle,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stepDesc,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "❓ Frequently Asked Questions (FAQs)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    val faqs = listOf(
+                        "Q1: What is Marks Tracking?" to "A: It is a digital school diary where your teachers log exam scores and parents can see your learning curves safely list-by-list!",
+                        "Q2: Can Parents rewrite student marks?" to "A: No! Parents have a safe 'View-Only' role. They can check grades and track trends, but only teachers and admins can change score logs.",
+                        "Q3: How do we read the line graphs?" to "A: The colored line shows score updates. If the line moves up, it means you've improved and gotten higher scores!",
+                        "Q4: What happens if a score is below 40%?" to "A: Our friendly AI Study Advisor flags weak marks and outlines simple 15-minute daily practice steps to help you improve by 5% each week.",
+                        "Q5: Can parents add more than 2 children?" to "A: Parent plans allow up to 2 kids for tracking. Schools can upgrade to the School Suite to manage thousands of students at once.",
+                        "Q6: How can families print report sheets?" to "A: Tap on 'Billing Suite', select an invoice/history row, and click download PDF. You can save, share, or print the report directly!",
+                        "Q7: Are my school scores kept private?" to "A: Yes! Our system isolates school records into secure private directories so other class students never see your private scores.",
+                        "Q8: Do scores update in real-time?" to "A: Yes! As soon as the teacher hits 'Save Changes', the parents' dashboard and line graphs update instantly across all profiles!"
+                    )
+                    
+                    faqs.forEach { (faqQ, faqA) ->
+                        var faqExpanded by remember { mutableStateOf(false) }
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f), RoundedCornerShape(8.dp))
+                                .clickable { faqExpanded = !faqExpanded }
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = faqQ,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(0.9f)
+                                    )
+                                    Icon(
+                                        imageVector = if (faqExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                if (faqExpanded) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = faqA,
+                                        fontSize = 11.sp,
+                                        color = Slate600,
+                                        lineHeight = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
