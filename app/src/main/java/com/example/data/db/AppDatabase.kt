@@ -78,6 +78,9 @@ interface SubjectDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSubject(subject: Subject): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSubjects(subjects: List<Subject>)
+
     @Query("DELETE FROM subjects WHERE id = :subjectId")
     suspend fun deleteSubjectById(subjectId: Long)
 
@@ -126,6 +129,9 @@ interface TestTypeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTestType(testType: TestType): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTestTypes(testTypes: List<TestType>)
+
     @Query("DELETE FROM test_types WHERE id = :testTypeId")
     suspend fun deleteTestTypeById(testTypeId: Long)
 
@@ -152,7 +158,7 @@ interface PaymentRecordDao {
         PaymentRecord::class,
         TestType::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -87,18 +87,18 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
     // Scale and alpha animation values
     val scale by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "scale"
     )
     val alpha by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
         label = "alpha"
     )
 
     LaunchedEffect(key1 = true) {
         startAnimation = true
-        delay(2200) // 2.2 seconds display
+        delay(600) // Much snappier delay of 600ms
         onTimeout()
     }
 
@@ -171,16 +171,11 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
             ) {
                 var loadingProgress by remember { mutableStateOf(0f) }
                 LaunchedEffect(key1 = true) {
-                    while (true) {
-                        loadingProgress = 0f
-                        delay(200)
-                        loadingProgress = 1f
-                        delay(1000)
-                    }
+                    loadingProgress = 1f
                 }
                 val animProgress by animateFloatAsState(
                     targetValue = loadingProgress,
-                    animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+                    animationSpec = tween(durationMillis = 600, easing = LinearEasing),
                     label = "progress"
                 )
                 Box(
@@ -342,6 +337,11 @@ fun UserProfileDialog(
     viewModel: MarksViewModel,
     onDismiss: () -> Unit
 ) {
+    var showPasswordForm by remember { mutableStateOf(false) }
+    var newPassword by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf("") }
+    var passwordSuccess by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -406,6 +406,104 @@ fun UserProfileDialog(
                             ) {
                                 Text(planLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Teal600)
                             }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // --- CHANGE PASSWORD SECTION ---
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showPasswordForm = !showPasswordForm }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Change Password",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Icon(
+                            imageVector = if (showPasswordForm) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    if (showPasswordForm) {
+                        OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = {
+                                newPassword = it
+                                passwordError = ""
+                                passwordSuccess = false
+                            },
+                            label = { Text("New Password", fontSize = 12.sp) },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth().testTag("profile_change_password_input"),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        if (passwordError.isNotEmpty()) {
+                            Text(
+                                text = passwordError,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+
+                        if (passwordSuccess) {
+                            Text(
+                                text = "Password changed successfully!",
+                                color = Teal600,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (newPassword.trim().length < 4) {
+                                    passwordError = "Password must be at least 4 characters long."
+                                } else {
+                                    viewModel.changePassword(
+                                        newPasswordText = newPassword,
+                                        onSuccess = {
+                                            passwordSuccess = true
+                                            newPassword = ""
+                                            passwordError = ""
+                                        },
+                                        onError = { err ->
+                                            passwordError = err
+                                        }
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("profile_save_password_btn"),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Update Password", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1128,7 +1226,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Column {
                                     Text("Free Starter Tier", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Text("Basic parameters. Limits to 7 preseeded subjects.", fontSize = 10.sp, color = adaptiveSlate600())
+                                    Text("Track up to 1 student, 7 preseeded subjects. Basic view.", fontSize = 10.sp, color = adaptiveSlate600())
                                 }
                             }
 
@@ -1154,7 +1252,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Column {
                                     Text("Parent Pro Tier", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Text("Unlimited children, custom subjects, AI Advisory Companion.", fontSize = 10.sp, color = adaptiveSlate600())
+                                    Text("Track up to 4 children, custom subjects, AI Advisory Companion.", fontSize = 10.sp, color = adaptiveSlate600())
                                 }
                             }
 
@@ -1180,7 +1278,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Column {
                                     Text("School Suite Tier", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Text("CSV Batch upload, sub-accounts, multi-tenant locks.", fontSize = 10.sp, color = adaptiveSlate600())
+                                    Text("Track up to 200 students, CSV Batch, sub-accounts, multi-tenant locks.", fontSize = 10.sp, color = adaptiveSlate600())
                                 }
                             }
                         }
@@ -1926,7 +2024,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                     .padding(bottom = 16.dp)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Add New Student Record (AutoAES-256)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("Add New Student Record", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -1972,12 +2070,23 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                             Text("Add Student")
                         }
                     }
-                    if (user.role == "SCHOOL_ADMIN") {
+                    if (user.role != "SUPER_ADMIN") {
+                        val limitText = when {
+                            user.planType == "FREE" -> "Notice: Free Plan limited to 1 student directory. Current enrollment: ${students.size}/1"
+                            user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "INDIVIDUAL_PARENT" -> "Notice: Parents Plan limited to 4 children files. Current enrollment: ${students.size}/4"
+                            else -> "Notice: School Plan limited to 200 student directories. Current enrollment: ${students.size}/200"
+                        }
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            "Notice: School Plan limited to 200 student directories. Current enrollment: ${students.size}/200",
+                            limitText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = adaptiveSlate600()
+                            color = if ((user.planType == "FREE" && students.size >= 1) ||
+                                       ((user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "INDIVIDUAL_PARENT") && students.size >= 4) ||
+                                       (user.role == "SCHOOL_ADMIN" && students.size >= 200)) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                adaptiveSlate600()
+                            }
                         )
                     }
                 }
@@ -3706,7 +3815,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Text("Rs 0.00/Year", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "Free tier with read-only view. No option to edit, update or delete existing Subjects and Type of Exam.",
+                    "Free tier allows tracking up to 1 student with basic read-only or limited features. No custom subjects or custom test schedule additions.",
                     fontSize = 11.sp,
                     color = Slate600
                 )
@@ -3761,7 +3870,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Text("+18% GST (Total: Rs 118.00)", fontSize = 9.sp, color = Slate600)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "Parents Plan can edit, add or remove the Subjects and Type of Exam for two children. Safe data visualization matrices.",
+                    "Parents Plan can edit, add or remove the Subjects and Type of Exam for up to four children. Safe data visualization matrices.",
                     fontSize = 11.sp,
                     color = Slate600
                 )
@@ -4510,7 +4619,8 @@ fun HowToUseAndFAQSection(expandedByDefault: Boolean = true) {
                         "5. Parents: Quick Family Dashboard 🧑‍🧑‍🧒" to "Parents get an direct view-only panel. They click their child's name to automatically load all standard charts and grades.",
                         "6. Parents: Reviewing Line Graphs & Progress 📈" to "Tap the 'Academic Analytics' tab to inspect colorful line charts representing progress peaks, averages, and comparative bar graphs plotting test scores over time.",
                         "7. Everyone: AI Study Advisory Helper 🤖" to "If a score is below 40%, the smart Gemini Companion highlights weak areas and creates custom, 15-minute weekly drill recommendations.",
-                        "8. Parents: Downloading PDF Report Cards 📄" to "Under billing records, parents can download and print official progress card PDFs to pin on a room study desk!"
+                        "8. Parents: Downloading PDF Report Cards 📄" to "Under billing records, parents can download and print official progress card PDFs to pin on a room study desk!",
+                        "9. New Academic Year Setup 📅" to "For the new academic year, a new record can be created for the same children/students by using the same name and different Class. By doing this, a new record for the particular child/student will be available to update the marks."
                     )
                     
                     steps.forEach { (stepTitle, stepDesc) ->
@@ -4557,10 +4667,11 @@ fun HowToUseAndFAQSection(expandedByDefault: Boolean = true) {
                         "Q2: Can Parents rewrite student marks?" to "A: No! Parents have a safe 'View-Only' role. They can check grades and track trends, but only teachers and admins can change score logs.",
                         "Q3: How do we read the line graphs?" to "A: The colored line shows score updates. If the line moves up, it means you've improved and gotten higher scores!",
                         "Q4: What happens if a score is below 40%?" to "A: Our friendly AI Study Advisor flags weak marks and outlines simple 15-minute daily practice steps to help you improve by 5% each week.",
-                        "Q5: Can parents add more than 2 children?" to "A: Parent plans allow up to 2 kids for tracking. Schools can upgrade to the School Suite to manage thousands of students at once.",
+                        "Q5: Can parents add more than 4 children?" to "A: Parent plans allow up to 4 kids for tracking. Schools can upgrade to the School Suite to manage up to 200 students at once.",
                         "Q6: How can families print report sheets?" to "A: Tap on 'Billing Suite', select an invoice/history row, and click download PDF. You can save, share, or print the report directly!",
                         "Q7: Are my school scores kept private?" to "A: Yes! Our system isolates school records into secure private directories so other class students never see your private scores.",
-                        "Q8: Do scores update in real-time?" to "A: Yes! As soon as the teacher hits 'Save Changes', the parents' dashboard and line graphs update instantly across all profiles!"
+                        "Q8: Do scores update in real-time?" to "A: Yes! As soon as the teacher hits 'Save Changes', the parents' dashboard and line graphs update instantly across all profiles!",
+                        "Q9: How do I handle a new academic year?" to "A: For the new academic year, a new record can be created for the same children/students by using the same name and different Class. By this, a new record for the particular child/student will be available to update the marks."
                     )
                     
                     faqs.forEach { (faqQ, faqA) ->

@@ -184,6 +184,39 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
             observeCoreData()
         }
         observeConfig()
+        seedRequiredSuperAdmins()
+    }
+
+    private fun seedRequiredSuperAdmins() {
+        viewModelScope.launch {
+            try {
+                val superAdminsToSeed = listOf(
+                    Pair("mohanv44@gmail.com", "Oraclecloud@2022"),
+                    Pair("alttyjoy@gmail.com", "Oraclecloud@2022")
+                )
+                for (adminPair in superAdminsToSeed) {
+                    val email = adminPair.first
+                    val password = adminPair.second
+                    val existingSuper = repository.getUserByEmail(email)
+                    if (existingSuper == null) {
+                        repository.insertUser(
+                            UserAccount(
+                                name = if (email.startsWith("mohan")) "Mohan Super Admin" else "Altty Super Admin",
+                                email = email,
+                                passwordHash = password.sha256(),
+                                role = "SUPER_ADMIN",
+                                planType = "SCHOOL_PLAN",
+                                schoolId = "GLOBAL_SUPER"
+                            )
+                        )
+                    } else if (existingSuper.passwordHash != password.sha256()) {
+                        repository.insertUser(existingSuper.copy(passwordHash = password.sha256()))
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun observeConfig() {
@@ -457,10 +490,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         seedingTenancies.add(leaseKey)
         viewModelScope.launch {
             try {
-                val defaults = listOf("Mathematics", "Science", "Social", "English", "Language-1", "Language-2", "Language-3")
-                defaults.forEach {
-                    repository.insertSubject(Subject(name = it, belongsToId = belongsToId))
-                }
+                val defaults = listOf("Mathematics", "Science", "Social", "English", "Subject-1", "Subject-2", "Subject-3")
+                val subjects = defaults.map { Subject(name = it, belongsToId = belongsToId) }
+                repository.insertSubjects(subjects)
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -475,25 +507,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         seedingTenancies.add(leaseKey)
         viewModelScope.launch {
             try {
-                val plan = currentUser?.planType ?: "FREE"
-                val defaults = if (plan == "FREE") {
-                    val list = mutableListOf<String>()
-                    for (i in 1..20) {
-                        list.add("Weekly-$i")
-                    }
-                    for (i in 1..12) {
-                        list.add("Monthly-$i")
-                    }
-                    list.add("Quarterly")
-                    list.add("Half Yearly")
-                    list.add("Annually")
-                    list
-                } else {
-                    listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual")
-                }
-                defaults.forEach {
-                    repository.insertTestType(TestType(name = it, belongsToId = belongsToId))
-                }
+                val defaults = listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual")
+                val testTypes = defaults.map { TestType(name = it, belongsToId = belongsToId) }
+                repository.insertTestTypes(testTypes)
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -607,7 +623,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         // 1. Seed Subjects
         val existingSubjects = repository.getSubjectsSync(schoolId)
         val subjectsToInsert = if (existingSubjects.isEmpty()) {
-            val defaults = listOf("Mathematics", "Science", "Social", "English", "Language-1", "Language-2", "Language-3")
+            val defaults = listOf("Mathematics", "Science", "Social", "English", "Subject-1", "Subject-2", "Subject-3")
             defaults.map { name ->
                 val s = Subject(name = name, belongsToId = schoolId)
                 val id = repository.insertSubject(s)
@@ -642,9 +658,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 "Science" to listOf(78.0, 82.0, 85.0, 86.0, 90.0),
                 "Social" to listOf(90.0, 92.0, 93.0, 91.0, 94.0),
                 "English" to listOf(88.0, 85.0, 87.0, 89.0, 92.0),
-                "Language-1" to listOf(92.0, 94.0, 95.0, 97.0, 99.0),
-                "Language-2" to listOf(85.0, 85.0, 85.0, 85.0, 85.0),
-                "Language-3" to listOf(80.0, 80.0, 80.0, 80.0, 80.0)
+                "Subject-1" to listOf(92.0, 94.0, 95.0, 97.0, 99.0),
+                "Subject-2" to listOf(85.0, 85.0, 85.0, 85.0, 85.0),
+                "Subject-3" to listOf(80.0, 80.0, 80.0, 80.0, 80.0)
             )
 
             val diyaScores = mapOf(
@@ -652,9 +668,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 "Science" to listOf(65.0, 70.0, 72.0, 68.0, 75.0),
                 "Social" to listOf(75.0, 77.0, 74.0, 79.0, 81.0),
                 "English" to listOf(80.0, 82.0, 85.0, 83.0, 88.0),
-                "Language-1" to listOf(70.0, 72.0, 75.0, 78.0, 80.0),
-                "Language-2" to listOf(60.0, 62.0, 64.0, 61.0, 65.0),
-                "Language-3" to listOf(50.0, 55.0, 52.0, 58.0, 60.0)
+                "Subject-1" to listOf(70.0, 72.0, 75.0, 78.0, 80.0),
+                "Subject-2" to listOf(60.0, 62.0, 64.0, 61.0, 65.0),
+                "Subject-3" to listOf(50.0, 55.0, 52.0, 58.0, 60.0)
             )
 
             val kabirScores = mapOf(
@@ -662,9 +678,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 "Science" to listOf(88.0, 75.0, 60.0, 48.0, 38.0), // Downward trend
                 "Social" to listOf(58.0, 60.0, 62.0, 61.0, 65.0),
                 "English" to listOf(60.0, 62.0, 65.0, 64.0, 68.0),
-                "Language-1" to listOf(75.0, 78.0, 80.0, 82.0, 85.0),
-                "Language-2" to listOf(65.0, 66.0, 68.0, 67.0, 70.0),
-                "Language-3" to listOf(55.0, 58.0, 60.0, 59.0, 62.0)
+                "Subject-1" to listOf(75.0, 78.0, 80.0, 82.0, 85.0),
+                "Subject-2" to listOf(65.0, 66.0, 68.0, 67.0, 70.0),
+                "Subject-3" to listOf(55.0, 58.0, 60.0, 59.0, 62.0)
             )
 
             val ananyaScores = mapOf(
@@ -672,9 +688,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 "Science" to listOf(92.0, 94.0, 95.0, 96.0, 98.0),
                 "Social" to listOf(88.0, 90.0, 92.0, 91.0, 94.0),
                 "English" to listOf(90.0, 91.0, 93.0, 92.0, 95.0),
-                "Language-1" to listOf(96.0, 98.0, 99.0, 98.0, 100.0),
-                "Language-2" to listOf(90.0, 92.0, 93.0, 95.0, 96.0),
-                "Language-3" to listOf(92.0, 94.0, 95.0, 93.0, 97.0)
+                "Subject-1" to listOf(96.0, 98.0, 99.0, 98.0, 100.0),
+                "Subject-2" to listOf(90.0, 92.0, 93.0, 95.0, 96.0),
+                "Subject-3" to listOf(92.0, 94.0, 95.0, 93.0, 97.0)
             )
 
             seededStudents.forEach { stud ->
@@ -707,7 +723,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         // 1. Seed Subjects
         val existingSubjects = repository.getSubjectsSync(belongsToId)
         val subjectsToInsert = if (existingSubjects.isEmpty()) {
-            val defaults = listOf("Mathematics", "Science", "Social", "English", "Language-1", "Language-2", "Language-3")
+            val defaults = listOf("Mathematics", "Science", "Social", "English", "Subject-1", "Subject-2", "Subject-3")
             defaults.map { name ->
                 val s = Subject(name = name, belongsToId = belongsToId)
                 val id = repository.insertSubject(s)
@@ -737,9 +753,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 "Science" to listOf(42.0, 39.0, 35.0, 32.0, 30.0), // Downward trend
                 "Social" to listOf(70.0, 72.0, 75.0, 78.0, 82.0),
                 "English" to listOf(85.0, 88.0, 90.0, 91.0, 94.0),
-                "Language-1" to listOf(88.0, 90.0, 92.0, 91.0, 95.0),
-                "Language-2" to listOf(80.0, 80.0, 80.0, 80.0, 80.0),
-                "Language-3" to listOf(75.0, 75.0, 75.0, 75.0, 75.0)
+                "Subject-1" to listOf(88.0, 90.0, 92.0, 91.0, 95.0),
+                "Subject-2" to listOf(80.0, 80.0, 80.0, 80.0, 80.0),
+                "Subject-3" to listOf(75.0, 75.0, 75.0, 75.0, 75.0)
             )
 
             val marksList = mutableListOf<Mark>()
@@ -973,27 +989,59 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun changePassword(newPasswordText: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val user = currentUser ?: return
+        if (newPasswordText.trim().length < 4) {
+            onError("Password must be at least 4 characters long.")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val hashed = newPasswordText.sha256()
+                val updatedUser = user.copy(passwordHash = hashed)
+                repository.insertUser(updatedUser)
+                saveUserSession(updatedUser)
+                prefs.edit().putString(KEY_USER_PASS_HASH, hashed).apply()
+                actionMessage = "Password updated successfully!"
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to update password.")
+            }
+        }
+    }
+
     // --- Student & Sub-account Management ---
     fun addNewStudent(name: String, rollNo: String, studentClass: String = "") {
         val user = currentUser ?: return
         if (name.isEmpty()) return
 
         viewModelScope.launch {
-            // Parent Cap: maximum of 2 children
-            if (user.role == "INDIVIDUAL_PARENT" || user.planType == "INDIVIDUAL_PARENT_PLAN") {
-                val currentCount = _studentsList.value.size
-                if (currentCount >= 2) {
-                    actionMessage = "Error: Parents Plan is capped at a maximum of 2 children."
-                    return@launch
+            if (user.role != "SUPER_ADMIN") {
+                // Free plan cap check (limit 1 student)
+                if (user.planType == "FREE") {
+                    val currentCount = _studentsList.value.size
+                    if (currentCount >= 1) {
+                        actionMessage = "Error: Free Plan is capped at a maximum of 1 student. Please upgrade to a premium plan to track more."
+                        return@launch
+                    }
                 }
-            }
 
-            // School Plan strict validation limit (200 students)
-            if (user.planType == "SCHOOL_PLAN" || user.role == "SCHOOL_ADMIN") {
-                val currentCount = repository.getStudentCountForSchool(user.schoolId)
-                if (currentCount >= 200) {
-                    actionMessage = "Error: School Plan limits reached (capped at 200 students max)."
-                    return@launch
+                // Parent Cap: maximum of 4 children
+                if (user.role == "INDIVIDUAL_PARENT" || user.planType == "INDIVIDUAL_PARENT_PLAN") {
+                    val currentCount = _studentsList.value.size
+                    if (currentCount >= 4) {
+                        actionMessage = "Error: Parents Plan is capped at a maximum of 4 children."
+                        return@launch
+                    }
+                }
+
+                // School Plan strict validation limit (200 students)
+                if (user.planType == "SCHOOL_PLAN" || user.role == "SCHOOL_ADMIN") {
+                    val currentCount = repository.getStudentCountForSchool(user.schoolId)
+                    if (currentCount >= 200) {
+                        actionMessage = "Error: School Plan limits reached (capped at 200 students max)."
+                        return@launch
+                    }
                 }
             }
 
@@ -1057,15 +1105,19 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
             repository.getMarksForStudent(student.id)
                 .catch { e -> e.printStackTrace() }
                 .collect { list ->
-                    _marksList.value = list
+                    val tempMap = mutableMapOf<String, String>()
                     list.forEach { mark ->
-                        gridMarks["${mark.subjectId}_${mark.examType}"] = mark.marksObtained.toString()
+                        tempMap["${mark.subjectId}_${mark.examType}"] = mark.marksObtained.toString()
                     }
+                    _marksList.value = list
+                    gridMarks.clear()
+                    gridMarks.putAll(tempMap)
                 }
         }
         if (currentUser?.role == "SUPER_ADMIN") {
             val belongsToId = if (student.schoolId.isNotEmpty()) student.schoolId else student.parentId?.toString() ?: "SUPER"
-            viewModelScope.launch {
+            subjectsJob?.cancel()
+            subjectsJob = viewModelScope.launch {
                 repository.getSubjects(belongsToId)
                     .catch { e -> e.printStackTrace() }
                     .collect {
@@ -1076,7 +1128,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
             }
-            viewModelScope.launch {
+            testTypesJob?.cancel()
+            testTypesJob = viewModelScope.launch {
                 repository.getTestTypes(belongsToId)
                     .catch { e -> e.printStackTrace() }
                     .collect {
@@ -1111,9 +1164,16 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val parentKids = _studentsList.value
                 val isOurKid = parentKids.any { it.id == student.id }
-                if (!isOurKid || parentKids.size > 2) {
-                    actionMessage = "Error: Parent is capped at updating a maximum of 2 children marks."
-                    return@launch
+                if (user.planType == "FREE") {
+                    if (!isOurKid || parentKids.size > 1) {
+                        actionMessage = "Error: Free Plan is capped at a maximum of 1 student marks."
+                        return@launch
+                    }
+                } else {
+                    if (!isOurKid || parentKids.size > 4) {
+                        actionMessage = "Error: Parent is capped at updating a maximum of 4 children marks."
+                        return@launch
+                    }
                 }
             } else if (user.role == "VIEW_ONLY_PARENT") {
                 actionMessage = "Error: View-Only parent accounts cannot save or modify marks."
@@ -1121,18 +1181,43 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
             }
             // SUPER_ADMIN has unlimited updater access - bypasses filters entirely.
 
-            gridMarks.forEach { (key, value) ->
-                val parts = key.split("_")
-                if (parts.size == 2) {
-                    val subjectId = parts[0].toLongOrNull()
-                    val examType = parts[1]
-                    val score = value.toDoubleOrNull()
-                    if (subjectId != null && score != null) {
-                        repository.saveMark(student.id, subjectId, examType, score)
+            val marksToSave = mutableListOf<Mark>()
+            try {
+                val existingMarks = repository.getMarksForStudentSync(student.id).associateBy { "${it.subjectId}_${it.examType}" }
+                gridMarks.forEach { (key, value) ->
+                    val parts = key.split("_")
+                    if (parts.size == 2) {
+                        val subjectId = parts[0].toLongOrNull()
+                        val examType = parts[1]
+                        val score = value.toDoubleOrNull()
+                        if (subjectId != null && score != null) {
+                            val existMark = existingMarks[key]
+                            if (existMark != null) {
+                                if (existMark.marksObtained != score) {
+                                    marksToSave.add(existMark.copy(marksObtained = score))
+                                }
+                            } else {
+                                marksToSave.add(
+                                    Mark(
+                                        studentId = student.id,
+                                        subjectId = subjectId,
+                                        examType = examType,
+                                        marksObtained = score,
+                                        maxMarks = 100.0
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
+                if (marksToSave.isNotEmpty()) {
+                    repository.saveMarksBulk(marksToSave)
+                }
+                actionMessage = "All cell updates securely saved to sqlite repository via high-speed transaction."
+            } catch (e: Exception) {
+                e.printStackTrace()
+                actionMessage = "Error saving changes: ${e.message}"
             }
-            actionMessage = "All cell updates securely saved to sqlite repository."
         }
     }
 
@@ -1177,20 +1262,30 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                         EncryptionUtil.decrypt(it.encryptedName).equals(studName, true) && it.rollNo == rollNo 
                     }
                     if (studentObj == null) {
-                        // School Plan / School Admin cap check
-                        if (user.planType == "SCHOOL_PLAN" || user.role == "SCHOOL_ADMIN") {
-                            val count = repository.getStudentCountForSchool(user.schoolId)
-                            if (count >= 200) {
-                                actionMessage = "Error: School plans capped at 200 student directories max."
-                                break // Stop bulk imports if capacity hits 200 ceiling limit
+                        if (user.role != "SUPER_ADMIN") {
+                            // Free Plan cap check
+                            if (user.planType == "FREE") {
+                                val count = _studentsList.value.size + insertedCount
+                                if (count >= 1) {
+                                    actionMessage = "Error: Free Plan is capped at a maximum of 1 student."
+                                    break // Stop bulk imports if free capacity hits 1
+                                }
                             }
-                        }
-                        // Parent cap check
-                        if (user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "INDIVIDUAL_PARENT") {
-                            val count = _studentsList.value.size + (insertedCount)
-                            if (count >= 2) {
-                                actionMessage = "Error: Parents Plan is capped at a maximum of 2 children."
-                                break // Stop bulk imports if parents capacity would hit 2 child limit list size
+                            // Parent cap check
+                            else if (user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "INDIVIDUAL_PARENT") {
+                                val count = _studentsList.value.size + (insertedCount)
+                                if (count >= 4) {
+                                    actionMessage = "Error: Parents Plan is capped at a maximum of 4 children."
+                                    break // Stop bulk imports if parents capacity would hit 4 child limit list size
+                                }
+                            }
+                            // School Plan / School Admin cap check
+                            else if (user.planType == "SCHOOL_PLAN" || user.role == "SCHOOL_ADMIN") {
+                                val count = repository.getStudentCountForSchool(user.schoolId)
+                                if (count >= 200) {
+                                    actionMessage = "Error: School plans capped at 200 student directories max."
+                                    break // Stop bulk imports if capacity hits 200 ceiling limit
+                                }
                             }
                         }
                         val newStudId = repository.insertStudent(

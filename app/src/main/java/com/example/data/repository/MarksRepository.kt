@@ -123,6 +123,10 @@ class MarksRepository(context: Context) {
         subjectDao.insertSubject(subject)
     }
 
+    suspend fun insertSubjects(subjects: List<Subject>) = withContext(Dispatchers.IO) {
+        subjectDao.insertSubjects(subjects)
+    }
+
     suspend fun deleteSubject(subjectId: Long) = withContext(Dispatchers.IO) {
         markDao.deleteMarksBySubject(subjectId)
         subjectDao.deleteSubjectById(subjectId)
@@ -141,6 +145,10 @@ class MarksRepository(context: Context) {
 
     suspend fun insertTestType(testType: TestType): Long = withContext(Dispatchers.IO) {
         testTypeDao.insertTestType(testType)
+    }
+
+    suspend fun insertTestTypes(testTypes: List<TestType>) = withContext(Dispatchers.IO) {
+        testTypeDao.insertTestTypes(testTypes)
     }
 
     suspend fun deleteTestType(testTypeId: Long, examType: String) = withContext(Dispatchers.IO) {
