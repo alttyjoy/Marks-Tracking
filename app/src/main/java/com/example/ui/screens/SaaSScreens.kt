@@ -3690,9 +3690,10 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
     var showCheckoutDetails by remember { mutableStateOf<PaymentCheckoutDetails?>(null) }
     var selectedComplianceDoc by remember { mutableStateOf<String?>(null) }
 
-    if (showCheckoutDetails != null) {
+    val checkoutDetails = showCheckoutDetails
+    if (checkoutDetails != null) {
         PaymentGatewayCheckoutDialog(
-            details = showCheckoutDetails!!,
+            details = checkoutDetails,
             viewModel = viewModel,
             onDismiss = { showCheckoutDetails = null }
         )
