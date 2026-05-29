@@ -161,6 +161,8 @@ class MarksRepository(context: Context) {
     }
 
     // --- Mark Operations ---
+    fun getAllMarks(): Flow<List<Mark>> = markDao.getAllMarks()
+
     fun getMarksForStudent(studentId: Long): Flow<List<Mark>> = markDao.getMarksForStudent(studentId)
 
     suspend fun getMarksForStudentSync(studentId: Long): List<Mark> = withContext(Dispatchers.IO) {

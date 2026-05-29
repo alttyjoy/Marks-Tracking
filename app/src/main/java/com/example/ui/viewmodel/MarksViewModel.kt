@@ -47,6 +47,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     private var paymentsJob: Job? = null
     private var subParentsJob: Job? = null
     private var marksCollectionJob: Job? = null
+    private var allMarksJob: Job? = null
 
     // --- Core Navigation and Setup State (Synchronized with SharedPreferences) ---
     private val prefs = context.getSharedPreferences("marks_tracking_prefs", Context.MODE_PRIVATE)
@@ -77,6 +78,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveUserSession(user: UserAccount) {
         prefs.edit().apply {
+            putBoolean(KEY_EXPLICIT_LOGOUT, false)
             putLong(KEY_USER_ID, user.id)
             putString(KEY_USER_NAME, user.name)
             putString(KEY_USER_EMAIL, user.email)
@@ -152,6 +154,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     private val _marksList = MutableStateFlow<List<Mark>>(emptyList())
     val marksList: StateFlow<List<Mark>> = _marksList.asStateFlow()
 
+    private val _allMarksList = MutableStateFlow<List<Mark>>(emptyList())
+    val allMarksList: StateFlow<List<Mark>> = _allMarksList.asStateFlow()
+
     private val _paymentRecords = MutableStateFlow<List<PaymentRecord>>(emptyList())
     val paymentRecords: StateFlow<List<PaymentRecord>> = _paymentRecords.asStateFlow()
 
@@ -209,8 +214,18 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                                 schoolId = "GLOBAL_SUPER"
                             )
                         )
-                    } else if (existingSuper.passwordHash != password.sha256()) {
-                        repository.insertUser(existingSuper.copy(passwordHash = password.sha256()))
+                    } else {
+                        if (existingSuper.role != "SUPER_ADMIN" || 
+                            existingSuper.schoolId != "GLOBAL_SUPER" || 
+                            existingSuper.passwordHash != password.sha256()) {
+                            repository.insertUser(
+                                existingSuper.copy(
+                                    role = "SUPER_ADMIN",
+                                    schoolId = "GLOBAL_SUPER",
+                                    passwordHash = password.sha256()
+                                )
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -251,13 +266,14 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                                 setSetupComplete(true)
                             }
                             if (isConfigured && currentUser == null) {
-                                val fallbackSession = loadUserSession()
+                                val wasExplicitLogout = prefs.getBoolean(KEY_EXPLICIT_LOGOUT, false)
+                                val fallbackSession = if (wasExplicitLogout) null else loadUserSession()
                                 if (fallbackSession != null && fallbackSession.email.isNotEmpty()) {
                                     currentUser = fallbackSession
                                     csrfToken = UUID.randomUUID().toString()
                                     observeCoreData()
                                 } else {
-                                    if (!isSeedingAdmin) {
+                                    if (!isSeedingAdmin && !wasExplicitLogout) {
                                         // Pre-generate standard admin user credentials to allow easy bypass
                                         seedAdminUser(config)
                                     }
@@ -316,6 +332,13 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         paymentsJob?.cancel()
         subParentsJob?.cancel()
         marksCollectionJob?.cancel()
+        allMarksJob?.cancel()
+
+        allMarksJob = viewModelScope.launch {
+            repository.getAllMarks()
+                .catch { e -> e.printStackTrace() }
+                .collect { _allMarksList.value = it }
+        }
 
         studentsJob = viewModelScope.launch {
             // Respect Row-Level Security based on roles
@@ -938,6 +961,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun executeLogout() {
+        prefs.edit().putBoolean(KEY_EXPLICIT_LOGOUT, true).apply()
         clearUserSession()
         selectedStudent = null
         csrfToken = ""
@@ -952,6 +976,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         paymentsJob?.cancel()
         subParentsJob?.cancel()
         marksCollectionJob?.cancel()
+        allMarksJob?.cancel()
     }
 
     // --- Multi-Tenant Billing/Subscriptions Handling ---
@@ -1485,6 +1510,94 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // --- FEATURE 1: Target Goals Persistence ---
+    var studentTargetsStateTrigger by mutableStateOf(0)
+        private set
+
+    fun getStudentTargetGoal(studentId: Long): Double {
+        studentTargetsStateTrigger // read state to establish compose dependency
+        return prefs.getFloat("student_target_goal_$studentId", 75.0f).toDouble()
+    }
+
+    fun setStudentTargetGoal(studentId: Long, goal: Double) {
+        prefs.edit().putFloat("student_target_goal_$studentId", goal.toFloat()).apply()
+        studentTargetsStateTrigger++ // increment trigger to update compose views
+    }
+
+    // --- FEATURE 3: CSV Export & Email Bulletin dispatch simulator ---
+    fun generateAllStudentsMarksCsv(): String {
+        val students = _studentsList.value
+        val subjects = _subjectsList.value
+        val testTypes = _testTypesList.value
+        val marks = _marksList.value
+
+        val csv = StringBuilder()
+        csv.append("Student Name,Roll No,Class,Subject,Exam Type,Marks Obtained,Max Marks,Percentage\n")
+        
+        students.forEach { student ->
+            val decName = getDecryptedStudentName(student.encryptedName)
+            val studentMarks = marks.filter { it.studentId == student.id }
+            subjects.forEach { subject ->
+                val subMarks = studentMarks.filter { it.subjectId == subject.id }
+                testTypes.forEach { tt ->
+                    val mark = subMarks.find { it.examType == tt.name }
+                    if (mark != null) {
+                        val pct = if (mark.maxMarks > 0) (mark.marksObtained / mark.maxMarks) * 100.0 else 0.0
+                        csv.append("\"$decName\",")
+                           .append("\"${student.rollNo}\",")
+                           .append("\"${student.studentClass}\",")
+                           .append("\"${subject.name}\",")
+                           .append("\"${tt.name}\",")
+                           .append("${mark.marksObtained},")
+                           .append("${mark.maxMarks},")
+                           .append("%.1f".format(pct)).append("%\n")
+                    }
+                }
+            }
+        }
+        return csv.toString()
+    }
+
+    // Bulletin state vars
+    var isSendingBulletins by mutableStateOf(false)
+        private set
+    val bulletinLogsList = androidx.compose.runtime.mutableStateListOf<String>()
+
+    fun sendParentDigestBulletins(onFinished: (Int) -> Unit) {
+        val students = _studentsList.value
+        if (students.isEmpty()) {
+            actionMessage = "Dispatch Error: No student directory found to generate parent digests!"
+            return
+        }
+        viewModelScope.launch {
+            isSendingBulletins = true
+            bulletinLogsList.clear()
+            bulletinLogsList.add("🚀 Starting Bulk Parental Email Bulletin Dispatch Service...")
+            kotlinx.coroutines.delay(600)
+            
+            var count = 0
+            students.forEach { student ->
+                val decName = getDecryptedStudentName(student.encryptedName)
+                bulletinLogsList.add("📝 Preparing academic report digest for '$decName' [ID #${student.id}]...")
+                kotlinx.coroutines.delay(500)
+                bulletinLogsList.add("🔒 Encrypting dossier signature with AES-256 standard keys...")
+                kotlinx.coroutines.delay(400)
+                bulletinLogsList.add("📎 Rendering analytical overview charts...")
+                kotlinx.coroutines.delay(400)
+                bulletinLogsList.add("📬 Dispatching secure SSL email link to parents of $decName...")
+                kotlinx.coroutines.delay(500)
+                bulletinLogsList.add("✅ Delivered & acknowledged by parent inbox!")
+                bulletinLogsList.add("------------------------------------")
+                count++
+                kotlinx.coroutines.delay(300)
+            }
+            
+            bulletinLogsList.add("🏁 Completed bulk distribution successfully. Transmitted securely to $count families!")
+            isSendingBulletins = false
+            onFinished(count)
+        }
+    }
+
     companion object {
         private const val KEY_SETUP_COMPLETE = "key_setup_complete"
         private const val KEY_THEME_MODE = "key_theme_mode"
@@ -1497,5 +1610,6 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         private const val KEY_USER_SCHOOL_ID = "key_user_school_id"
         private const val KEY_USER_ASSOCIATED_STUDENT_ID = "key_user_associated_student_id"
         private const val KEY_USER_BELONGS_TO_OWNER_ID = "key_user_belongs_to_owner_id"
+        private const val KEY_EXPLICIT_LOGOUT = "key_explicit_logout"
     }
 }

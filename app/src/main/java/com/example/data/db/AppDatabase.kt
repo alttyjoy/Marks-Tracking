@@ -90,6 +90,9 @@ interface SubjectDao {
 
 @Dao
 interface MarkDao {
+    @Query("SELECT * FROM marks")
+    fun getAllMarks(): Flow<List<Mark>>
+
     @Query("SELECT * FROM marks WHERE studentId = :studentId")
     fun getMarksForStudent(studentId: Long): Flow<List<Mark>>
 

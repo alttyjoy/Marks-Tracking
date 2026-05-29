@@ -2672,6 +2672,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
     val subjects by viewModel.subjectsList.collectAsState()
     val testTypes by viewModel.testTypesList.collectAsState()
     val marks by viewModel.marksList.collectAsState()
+    val allMarks by viewModel.allMarksList.collectAsState()
 
     Column(
         modifier = Modifier
@@ -3050,6 +3051,466 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     }
                 }
             }
+        }
+
+        // --- FEATURE 1: Student Target Goal Planner & Progress Gap Analysis ---
+        Spacer(modifier = Modifier.height(16.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("goal_planner_card"),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Star, contentDescription = null, tint = Blue500, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("KPI 6: Target Goal Planner & Progress Gap Analysis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                val targetGoal = viewModel.getStudentTargetGoal(student.id)
+                val allScores = marks.filter { it.studentId == student.id }
+                val actualMean = if (allScores.isNotEmpty()) allScores.map { it.marksObtained }.average() else 0.0
+                val gap = actualMean - targetGoal
+
+                Text(
+                    text = "Establish a custom academic target range for ${viewModel.getDecryptedStudentName(student.encryptedName)} and measure development milestones.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = adaptiveSlate600()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Target Percentage: ${targetGoal.toInt()}%",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = { viewModel.setStudentTargetGoal(student.id, (targetGoal - 5.0).coerceAtLeast(35.0)) },
+                            modifier = Modifier.size(36.dp).background(adaptiveSlate100(), CircleShape).testTag("decrement_target_btn")
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrement", modifier = Modifier.size(16.dp))
+                        }
+                        IconButton(
+                            onClick = { viewModel.setStudentTargetGoal(student.id, (targetGoal + 5.0).coerceAtMost(100.0)) },
+                            modifier = Modifier.size(36.dp).background(adaptiveSlate100(), CircleShape).testTag("increment_target_btn")
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Increment", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Performance Indicator status", fontSize = 10.sp, color = adaptiveSlate600())
+                        Text(
+                            text = if (gap >= 0) "TARGET REACHED!" else "BEHIND BY " + "%.1f".format(-gap) + "%",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (gap >= 0) Teal500 else Rose500
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(adaptiveSlate100())
+                    ) {
+                        // Track Indicator
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction = (actualMean / 100.0).toFloat().coerceIn(0f, 1f))
+                                .fillMaxHeight()
+                                .background(if (gap >= 0) Teal500 else Blue500)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Current Average: " + "%.1f".format(actualMean) + "%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Blue500)
+                        Text("Target Goal: ${targetGoal.toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Red)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(adaptiveSlate100(), RoundedCornerShape(4.dp))
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = if (gap >= 0) Teal500 else Blue500, modifier = Modifier.size(16.dp))
+                    Text(
+                        text = if (gap >= 0) {
+                            "Status is optimal. Maintaining a surplus of " + "%.1f".format(gap) + "% above Target thresholds. Continue current learning cycle."
+                        } else {
+                            "Needs academic acceleration. Secure average marks of ${targetGoal.toInt()}% in current assignments to restore milestone compliance."
+                        },
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        // --- FEATURE 2: Global Classroom Leaderboard & Rank Suite ---
+        Spacer(modifier = Modifier.height(16.dp))
+        val allStudents by viewModel.studentsList.collectAsState()
+        var leaderboardSearchQuery by remember { mutableStateOf("") }
+        var isAlphaSort by remember { mutableStateOf(false) }
+
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("classroom_leaderboard_card"),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Assessment, contentDescription = null, tint = Teal500, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("🏫 Global Classroom Leaderboard & Rank Suite", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Perform cross-student standings inspections, highlighting academic stars and identifying risk profiles automatically.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = adaptiveSlate600()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = leaderboardSearchQuery,
+                    onValueChange = { leaderboardSearchQuery = it },
+                    placeholder = { Text("Search students...", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth().testTag("leaderboard_search"),
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    trailingIcon = {
+                        IconButton(onClick = { isAlphaSort = !isAlphaSort }) {
+                            Icon(
+                                imageVector = if (isAlphaSort) Icons.Default.Sort else Icons.Default.FilterList,
+                                contentDescription = "Toggle Sort",
+                                tint = Blue500,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Slate900, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Rank & Name", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(1.5f))
+                    Text("Average (%)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(1.2f), textAlign = TextAlign.End)
+                }
+
+                val studentsLeaderboard = allStudents.map { s ->
+                    val decName = viewModel.getDecryptedStudentName(s.encryptedName)
+                    val sMarks = allMarks.filter { it.studentId == s.id }
+                    val avg = if (sMarks.isNotEmpty()) sMarks.map { it.marksObtained }.average() else 0.0
+                    Triple(s, decName, avg)
+                }.sortedByDescending { it.third }
+
+                val filteredLeaderboard = studentsLeaderboard.filter {
+                    it.second.contains(leaderboardSearchQuery, ignoreCase = true)
+                }.let { list ->
+                    if (isAlphaSort) list.sortedBy { it.second } else list
+                }
+
+                if (filteredLeaderboard.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(adaptiveSlate100(), RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp))
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No match found in current division.", fontSize = 12.sp, color = adaptiveSlate600())
+                    }
+                } else {
+                    filteredLeaderboard.forEachIndexed { index, item ->
+                        val (s, decName, avg) = item
+                        val origIndex = studentsLeaderboard.indexOfFirst { it.first.id == s.id }
+                        val rankNum = origIndex + 1
+
+                        val tagColor = when {
+                            avg >= 85 -> Teal500
+                            avg < 40 -> Rose500
+                            else -> Blue500
+                        }
+                        val tagText = when {
+                            avg >= 85 -> "Distinction"
+                            avg < 40 -> "Action Required"
+                            else -> "Passing"
+                        }
+
+                        val isCurrentUser = s.id == student.id
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (isCurrentUser) Blue500.copy(alpha = 0.12f)
+                                    else if (index % 2 == 0) adaptiveSlate100()
+                                    else MaterialTheme.colorScheme.surface
+                                )
+                                .clickable { viewModel.selectStudent(s) }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1.5f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val rankStr = when (rankNum) {
+                                    1 -> "🥇 "
+                                    2 -> "🥈 "
+                                    3 -> "🥉 "
+                                    else -> "#$rankNum "
+                                }
+                                Text(
+                                    text = "$rankStr $decName",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isCurrentUser) FontWeight.Bold else FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.weight(1.2f),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "%.1f".format(avg) + "%",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Blue600,
+                                    textAlign = TextAlign.End
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(tagColor.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = tagText,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = tagColor
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- FEATURE 3: Bulk Exporter & Parental Digest Dispatch Suite ---
+        Spacer(modifier = Modifier.height(16.dp))
+        var showCsvDialog by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("outbox_suite_card"),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, adaptiveSlate100()),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Share, contentDescription = null, tint = Blue500, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("📦 Data Portability & Parental Outbox Suite", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Unlock high-fidelity data backups. Instantly compile all student spreadsheets to raw CSV datasets or trigger simulated secure mail bulletins to matching parents.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = adaptiveSlate600()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { showCsvDialog = true },
+                        modifier = Modifier.weight(1f).testTag("export_csv_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue500),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Export CSV", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            viewModel.sendParentDigestBulletins { count ->
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Successfully finalized multi-channel bulletin delivery to $count families!",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1.2f).testTag("parent_bulletin_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = Teal500),
+                        enabled = !viewModel.isSendingBulletins,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        if (viewModel.isSendingBulletins) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(14.dp))
+                        } else {
+                            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (viewModel.isSendingBulletins) "Sending..." else "Send Bulletins", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Log terminal output for mail dispatcher
+                if (viewModel.isSendingBulletins || viewModel.bulletinLogsList.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Outbox Dispatch Log Status:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Blue500)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (viewModel.isSendingBulletins) {
+                        LinearProgressIndicator(
+                            color = Teal500,
+                            trackColor = adaptiveSlate100(),
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                            .background(Color.Black, RoundedCornerShape(8.dp))
+                            .border(1.dp, Slate600, RoundedCornerShape(8.dp))
+                            .padding(10.dp)
+                    ) {
+                        val scrollState = rememberScrollState()
+                        LaunchedEffect(viewModel.bulletinLogsList.size) {
+                            scrollState.scrollTo(scrollState.maxValue)
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(scrollState)
+                        ) {
+                            viewModel.bulletinLogsList.forEach { logEntry ->
+                                Text(
+                                    text = logEntry,
+                                    color = if (logEntry.startsWith("✅") || logEntry.startsWith("🏁")) Teal500
+                                            else if (logEntry.contains("Error")) Rose500
+                                            else Color(0xFFE2E8F0),
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier.padding(vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // CSV Export Dialog Modal
+        if (showCsvDialog) {
+            val csvData = viewModel.generateAllStudentsMarksCsv()
+            AlertDialog(
+                onDismissRequest = { showCsvDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Save, contentDescription = null, tint = Blue500)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Marks Database Backup (CSV)", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                },
+                text = {
+                    Column {
+                        Text(
+                            "Highlight or copy the dataset underneath. Complete data arrays are fully compiled offline in real time.",
+                            fontSize = 12.sp,
+                            color = adaptiveSlate600()
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .background(adaptiveSlate100(), RoundedCornerShape(8.dp))
+                                .border(1.dp, Slate600.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                .padding(8.dp)
+                        ) {
+                            val scrollState = rememberScrollState()
+                            Text(
+                                text = csvData,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(scrollState)
+                                    .testTag("csv_export_text_block")
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Student Marks CSV", csvData)
+                            clipboard.setPrimaryClip(clip)
+                            android.widget.Toast.makeText(context, "Spreadsheet dataset copied to clipboard successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                            showCsvDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue500)
+                    ) {
+                        Text("Copy to Clipboard", fontSize = 12.sp)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCsvDialog = false }) {
+                        Text("Dismiss", fontSize = 12.sp)
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
