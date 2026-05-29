@@ -2250,7 +2250,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                         )
                     }
 
-                    Divider(color = Slate600)
+                    HorizontalDivider(color = Slate600)
 
                     // Data Rows
                     subjects.forEach { subject ->
@@ -2325,7 +2325,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                                 color = if (rowMeanVal < 40.0 && count > 0) Rose500 else Blue500
                             )
                         }
-                        Divider(color = Slate600.copy(alpha = 0.5f))
+                        HorizontalDivider(color = Slate600.copy(alpha = 0.5f))
                     }
                 }
             }
@@ -2547,7 +2547,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Divider()
+                        HorizontalDivider()
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // Items list with editing
@@ -2599,7 +2599,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                                             }
                                         }
                                     }
-                                    Divider()
+                                    HorizontalDivider()
                                 }
                             } else {
                                 items(testTypes) { testType ->
@@ -2648,7 +2648,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                                             }
                                         }
                                     }
-                                    Divider()
+                                    HorizontalDivider()
                                 }
                             }
                         }
