@@ -207,6 +207,7 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .testTag("app_navigation_scaffold"),
             topBar = {
                 if (isConfigured && currentUser != null) {
