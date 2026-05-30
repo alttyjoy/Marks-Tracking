@@ -3229,12 +3229,14 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     Text("Average (%)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(1.2f), textAlign = TextAlign.End)
                 }
 
-                val studentsLeaderboard = allStudents.map { s ->
-                    val decName = viewModel.getDecryptedStudentName(s.encryptedName)
-                    val sMarks = allMarks.filter { it.studentId == s.id }
-                    val avg = if (sMarks.isNotEmpty()) sMarks.map { it.marksObtained }.average() else 0.0
-                    Triple(s, decName, avg)
-                }.sortedByDescending { it.third }
+                val studentsLeaderboard = remember(allStudents, allMarks) {
+                    allStudents.map { s ->
+                        val decName = viewModel.getDecryptedStudentName(s.encryptedName)
+                        val sMarks = allMarks.filter { it.studentId == s.id }
+                        val avg = if (sMarks.isNotEmpty()) sMarks.map { it.marksObtained }.average() else 0.0
+                        Triple(s, decName, avg)
+                    }.sortedByDescending { it.third }
+                }
 
                 val filteredLeaderboard = studentsLeaderboard.filter {
                     it.second.contains(leaderboardSearchQuery, ignoreCase = true)
