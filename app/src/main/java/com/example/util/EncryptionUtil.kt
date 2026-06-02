@@ -9,11 +9,11 @@ import javax.crypto.spec.SecretKeySpec
 object EncryptionUtil {
     private const val ALGORITHM = "AES/CBC/PKCS5Padding"
     
-    // 256-bit Key (32 bytes)
-    private val keyBytes = "MarksTrackingSecretKey1234567890".toByteArray() 
+    // 128-bit Key (16 bytes) - 100% compatible with all Java/Android JCE configurations without policy issues
+    private val keyBytes = "MarksTrack123456".toByteArray(StandardCharsets.UTF_8) 
     
     // 128-bit IV (16 bytes)
-    private val ivBytes = "IV_MarksTracking".toByteArray() 
+    private val ivBytes = "IV_MarksTracking".toByteArray(StandardCharsets.UTF_8) 
 
     fun encrypt(plainText: String?): String {
         if (plainText.isNullOrEmpty()) return ""
@@ -23,9 +23,9 @@ object EncryptionUtil {
             val cipher = Cipher.getInstance(ALGORITHM)
             cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec)
             val encryptedBytes = cipher.doFinal(plainText.toByteArray(StandardCharsets.UTF_8))
-            Base64.encodeToString(encryptedBytes, Base64.DEFAULT).trim()
+            Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
         } catch (e: Exception) {
-            plainText
+            plainText ?: ""
         }
     }
 
@@ -36,11 +36,11 @@ object EncryptionUtil {
             val ivSpec = IvParameterSpec(ivBytes)
             val cipher = Cipher.getInstance(ALGORITHM)
             cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
-            val decodedBytes = Base64.decode(encryptedText, Base64.DEFAULT)
+            val decodedBytes = Base64.decode(encryptedText, Base64.NO_WRAP)
             val decryptedBytes = cipher.doFinal(decodedBytes)
             String(decryptedBytes, StandardCharsets.UTF_8).trim()
         } catch (e: Exception) {
-            encryptedText
+            encryptedText ?: ""
         }
     }
 }

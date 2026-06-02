@@ -55,6 +55,10 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.annotation.SuppressLint
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.ui.viewinterop.AndroidView
 
 private val scaleFactor = 1.15f
 val Int.sp: TextUnit get() = (this * scaleFactor).baseSp
@@ -240,8 +244,9 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
+                                    val decCurrentUserName = viewModel.getDecryptedStudentName(currentUser.name)
                                     Text(
-                                        text = currentUser.name,
+                                        text = decCurrentUserName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -376,7 +381,8 @@ fun UserProfileDialog(
                     ) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text("Full Name:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
-                            Text(user.name, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val decName = viewModel.getDecryptedStudentName(user.name)
+                            Text(decName, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text("Email ID:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
@@ -1820,11 +1826,14 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
     var newStudentName by remember { mutableStateOf("") }
     var newStudentRoll by remember { mutableStateOf("") }
     var newStudentClass by remember { mutableStateOf("") }
+    var newParentName by remember { mutableStateOf("") }
+    var newSchoolName by remember { mutableStateOf("") }
 
     var csvText by remember { mutableStateOf("") }
     var showImportDialog by remember { mutableStateOf(false) }
     var showConfigDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
+    var adminSearchQuery by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -2057,12 +2066,33 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                                 singleLine = true
                             )
                         }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = newParentName,
+                                onValueChange = { newParentName = it },
+                                label = { Text("Parent Name (Mother/Father)") },
+                                modifier = Modifier.weight(1f).testTag("student_parent_name_input"),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = newSchoolName,
+                                onValueChange = { newSchoolName = it },
+                                label = { Text("School Name") },
+                                modifier = Modifier.weight(1f).testTag("student_school_name_input"),
+                                singleLine = true
+                            )
+                        }
                         Button(
                             onClick = {
-                                viewModel.addNewStudent(newStudentName, newStudentRoll, newStudentClass)
+                                viewModel.addNewStudent(newStudentName, newStudentRoll, newStudentClass, newParentName, newSchoolName)
                                 newStudentName = ""
                                 newStudentRoll = ""
                                 newStudentClass = ""
+                                newParentName = ""
+                                newSchoolName = ""
                             },
                             modifier = Modifier.align(Alignment.End).testTag("student_add_button")
                         ) {
@@ -2094,45 +2124,216 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
             }
         }
 
-        // Student active selection combo drawer
-        if (students.isNotEmpty()) {
-            Text("Select Student directory to modify:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
+        // Student active selection combo drawer OR Global Admin Search Panel
+        if (user.role == "SUPER_ADMIN") {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(bottom = 16.dp)
             ) {
-                students.forEach { stud ->
-                    val decName = viewModel.getDecryptedStudentName(stud.encryptedName)
-                    val isSelected = viewModel.selectedStudent?.id == stud.id
-                    val chipLabel = if (stud.studentClass.isNotEmpty()) "$decName (${stud.studentClass})" else decName
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.selectStudent(stud) },
-                        label = { Text(chipLabel) },
-                        leadingIcon = {
-                            if (isSelected) {
-                                Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(16.dp))
-                            }
-                        }
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AdminPanelSettings,
+                            contentDescription = "Admin icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Global Super Admin Panel",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Query student databases across all institutional nodes securely. Select any match to modify academic columns.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = adaptiveSlate600()
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = adminSearchQuery,
+                        onValueChange = { adminSearchQuery = it },
+                        placeholder = { Text("Search by Student, Roll, Class, Parent, or School...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search icon") },
+                        trailingIcon = {
+                            if (adminSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { adminSearchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admin_student_search_box"),
+                        singleLine = true
+                    )
+
+                    if (adminSearchQuery.isNotBlank()) {
+                        val matchingStudents = students.filter { stud ->
+                            val decName = viewModel.getDecryptedStudentName(stud.encryptedName)
+                            val decParent = viewModel.getDecryptedStudentName(stud.parentName)
+                            decName.contains(adminSearchQuery, ignoreCase = true) ||
+                                    stud.rollNo.contains(adminSearchQuery, ignoreCase = true) ||
+                                    stud.studentClass.contains(adminSearchQuery, ignoreCase = true) ||
+                                    stud.schoolId.contains(adminSearchQuery, ignoreCase = true) ||
+                                    decParent.contains(adminSearchQuery, ignoreCase = true) ||
+                                    stud.schoolName.contains(adminSearchQuery, ignoreCase = true)
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Search Identifications (${matchingStudents.size}):",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        if (matchingStudents.isNotEmpty()) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                matchingStudents.take(10).forEach { stud ->
+                                    val decName = viewModel.getDecryptedStudentName(stud.encryptedName)
+                                    val isSelected = viewModel.selectedStudent?.id == stud.id
+                                    val decParentName = viewModel.getDecryptedStudentName(stud.parentName)
+                                    val detailLabel = buildString {
+                                        append("Roll No: ${stud.rollNo}")
+                                        if (stud.studentClass.isNotEmpty()) {
+                                            append(" | Class: ${stud.studentClass}")
+                                        }
+                                        if (decParentName.isNotEmpty()) {
+                                            append(" | Parent: $decParentName")
+                                        }
+                                        if (stud.schoolName.isNotEmpty()) {
+                                            append(" | School: ${stud.schoolName}")
+                                        } else if (stud.schoolId.isNotEmpty()) {
+                                            append(" | School ID: ${stud.schoolId}")
+                                        }
+                                    }
+
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSelected) {
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                            } else {
+                                                MaterialTheme.colorScheme.surface
+                                            }
+                                        ),
+                                        border = BorderStroke(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { viewModel.selectStudent(stud) }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = decName,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = detailLabel,
+                                                    fontSize = 11.sp,
+                                                    color = adaptiveSlate600()
+                                                )
+                                            }
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = "Selected",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.ChevronRight,
+                                                    contentDescription = "Select child",
+                                                    tint = adaptiveSlate600(),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                if (matchingStudents.size > 10) {
+                                    Text(
+                                        text = "+ ${matchingStudents.size - 10} more directory matches. Please refine your search keyword.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = adaptiveSlate600(),
+                                        modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "Zero records match query.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         } else {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(32.dp), tint = adaptiveSlate600())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("No Students Added Yet.", fontWeight = FontWeight.Bold)
-                    Text("Add a student profile or upload CSV template using the trigger buttons.", fontSize = 12.sp, color = adaptiveSlate600())
+            if (students.isNotEmpty()) {
+                Text("Select Student directory to modify:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    students.forEach { stud ->
+                        val decName = viewModel.getDecryptedStudentName(stud.encryptedName)
+                        val isSelected = viewModel.selectedStudent?.id == stud.id
+                        val chipLabel = if (stud.studentClass.isNotEmpty()) "$decName (${stud.studentClass})" else decName
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.selectStudent(stud) },
+                            label = { Text(chipLabel) },
+                            leadingIcon = {
+                                if (isSelected) {
+                                    Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        )
+                    }
+                }
+            } else {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(32.dp), tint = adaptiveSlate600())
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("No Students Added Yet.", fontWeight = FontWeight.Bold)
+                        Text("Add a student profile or upload CSV template using the trigger buttons.", fontSize = 12.sp, color = adaptiveSlate600())
+                    }
                 }
             }
         }
@@ -2190,14 +2391,40 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("Excel Interactive Grid: $decryptedName", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Roll Number: ${curStudent.rollNo} | Live compilation state", style = MaterialTheme.typography.labelSmall, color = adaptiveSlate600())
+                    val decParent = viewModel.getDecryptedStudentName(curStudent.parentName)
+                    val infoText = buildString {
+                        append("Roll Number: ${curStudent.rollNo}")
+                        if (decParent.isNotEmpty()) {
+                            append(" | Parent: $decParent")
+                        }
+                        if (curStudent.schoolName.isNotEmpty()) {
+                            append(" | School: ${curStudent.schoolName}")
+                        }
+                    }
+                    Text("$infoText | Live compilation state", style = MaterialTheme.typography.labelSmall, color = adaptiveSlate600())
                 }
                 
-                if (user.role != "VIEW_ONLY_PARENT") {
-                    IconButton(onClick = { viewModel.deleteStudent(curStudent.id) }) {
-                        Icon(Icons.Default.DeleteForever, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = { viewModel.downloadStudentReportPdf(curStudent) },
+                        modifier = Modifier.testTag("download_report_pdf_excel_button")
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Download Report PDF",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    if (user.role != "VIEW_ONLY_PARENT") {
+                        IconButton(onClick = { viewModel.deleteStudent(curStudent.id) }) {
+                            Icon(Icons.Default.DeleteForever, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }
@@ -2666,6 +2893,195 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
 }
 
 
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun RechartsDashboard(jsonData: String) {
+    val htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Recharts Dashboard</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body {
+                    background-color: #0f172a;
+                    color: #f1f5f9;
+                    font-family: ui-sans-serif, system-ui, sans-serif;
+                    margin: 0;
+                    padding: 8px;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="root" class="flex flex-col items-center justify-center min-h-[400px]">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                <p class="text-xs text-slate-400 mt-3 font-semibold">Initializing Recharts React Engine...</p>
+            </div>
+
+            <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+            <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+            <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
+            <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
+            <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+            <script type="text/babel">
+                const {
+                    ResponsiveContainer,
+                    AreaChart,
+                    Area,
+                    BarChart,
+                    Bar,
+                    XAxis,
+                    YAxis,
+                    CartesianGrid,
+                    Tooltip,
+                    RadarChart,
+                    PolarGrid,
+                    PolarAngleAxis,
+                    PolarRadiusAxis,
+                    Radar
+                } = window.Recharts;
+
+                const infoData = $jsonData;
+
+                function DashboardApp() {
+                    return (
+                        <div className="flex flex-col space-y-6">
+                            {/* Header Summary */}
+                            <div className="bg-slate-800 border border-slate-700/50 rounded-xl p-4 shadow-lg flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-sm font-black text-teal-400 uppercase tracking-widest">Recharts Analytics Engine</h2>
+                                    <p className="text-2xs text-slate-400 font-semibold">{infoData.studentName}</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="inline-block bg-teal-500/20 text-teal-400 text-3xs px-2.5 py-1 rounded-full font-extrabold uppercase tracking-widest">
+                                        {infoData.overallStats.rank}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl p-3 text-center">
+                                    <p className="text-3xs uppercase tracking-widest text-slate-400">Student Average</p>
+                                    <p className="text-xl font-black text-blue-400">{infoData.overallStats.average.toFixed(1)}%</p>
+                                </div>
+                                <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl p-3 text-center">
+                                    <p className="text-3xs uppercase tracking-widest text-slate-400">Scores Logged</p>
+                                    <p className="text-xl font-black text-rose-400">{infoData.overallStats.achievedRatio}</p>
+                                </div>
+                            </div>
+
+                            {/* 1. Performance Trends Area Chart */}
+                            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
+                                <div className="mb-3">
+                                    <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">Performance Trends</h3>
+                                    <p className="text-3xs text-slate-400">Exam-over-exam overall average trajectory</p>
+                                </div>
+                                <div style={{ width: '100%', height: 180 }}>
+                                    <ResponsiveContainer>
+                                        <AreaChart
+                                            data={infoData.trendData}
+                                            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                                        >
+                                            <defs>
+                                                <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={8} tickLine={false} />
+                                            <YAxis stroke="#94a3b8" fontSize={8} domain={[0, 100]} tickCount={6} tickLine={false} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '8px', fontSize: '9px' }}
+                                                labelStyle={{ fontWeight: 'bold', color: '#38bdf8' }}
+                                            />
+                                            <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTrend)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* 2. Distributions Bar Chart */}
+                            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
+                                <div className="mb-3">
+                                    <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">Student Mark Distributions</h3>
+                                    <p className="text-3xs text-slate-400">Subject proficiency comparing averages</p>
+                                </div>
+                                <div style={{ width: '100%', height: 180 }}>
+                                    <ResponsiveContainer>
+                                        <BarChart
+                                            data={infoData.distributionData}
+                                            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
+                                            <XAxis dataKey="subject" stroke="#94a3b8" fontSize={8} tickLine={false} />
+                                            <YAxis stroke="#94a3b8" fontSize={8} domain={[0, 100]} tickLine={false} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '8px', fontSize: '9px' }}
+                                                labelStyle={{ fontWeight: 'bold' }}
+                                            />
+                                            <Bar dataKey="marks" fill="#14b8a6" radius={[4, 4, 0, 0]} barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* 3. Radar Subject Comparison Chart */}
+                            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md flex flex-col items-center">
+                                <div className="w-full text-left mb-3">
+                                    <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">Radar Competency Alignment</h3>
+                                    <p className="text-3xs text-slate-400">Radial layout profile across syllabus subjects</p>
+                                </div>
+                                <div style={{ width: '100%', height: 180 }} className="flex justify-center">
+                                    <ResponsiveContainer>
+                                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={infoData.distributionData}>
+                                            <PolarGrid stroke="#475569" opacity={0.4} />
+                                            <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={8} />
+                                            <PolarRadiusAxis stroke="#94a3b8" fontSize={6} angle={30} domain={[0, 100]} />
+                                            <Radar name={infoData.studentName} dataKey="marks" stroke="#6366f1" fill="#6366f1" fillOpacity={0.35} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1e293b', fontSize: '9px', borderRadius: '6px' }} />
+                                        </RadarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                const root = document.getElementById('root');
+                ReactDOM.createRoot(root).render(<DashboardApp />);
+            </script>
+        </body>
+        </html>
+    """.trimIndent()
+
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(840.dp),
+        factory = { context ->
+            WebView(context).apply {
+                webViewClient = WebViewClient()
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    useWideViewPort = true
+                    loadWithOverviewMode = true
+                }
+                loadDataWithBaseURL("https://localhost", htmlContent, "text/html", "UTF-8", null)
+            }
+        },
+        update = { webView ->
+            webView.loadDataWithBaseURL("https://localhost", htmlContent, "text/html", "UTF-8", null)
+        }
+    )
+}
+
+
 // --- 4. Advanced Interactive Dashboard Tab (Canvas-drawn dynamic charts) ---
 @Composable
 fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
@@ -2687,11 +3103,24 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
         ) {
             Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(32.dp), tint = Blue500)
             Spacer(modifier = Modifier.width(10.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text("Performance Dashboards Suite", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 if (student != null) {
                     val decName = viewModel.getDecryptedStudentName(student.encryptedName)
                     Text("Interactive KPIs matching profile: $decName", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
+                }
+            }
+            if (student != null && marks.isNotEmpty() && subjects.isNotEmpty()) {
+                IconButton(
+                    onClick = { viewModel.downloadStudentReportPdf(student) },
+                    modifier = Modifier.testTag("download_report_pdf_analytics_button")
+                ) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "Download Report PDF",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
             }
         }
@@ -2711,10 +3140,99 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     Text("Navigate to the 'Excel Grid' tab, select a student, enter scores, and click save to compile graphics.", fontSize = 12.sp, color = adaptiveSlate600(), textAlign = TextAlign.Center)
                 }
             }
-            return
+            return@Column
         }
 
         val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
+        val examAverages = exams.map { exam ->
+            val examMarks = marks.filter { it.examType == exam }
+            if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
+        }
+
+        // Switch between Recharts Suite and Native Canvas
+        var selectedMetricEngine by remember { mutableStateOf(0) } // 0 = Recharts Web Engine, 1 = Compose Canvas Engine
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { selectedMetricEngine = 0 },
+                modifier = Modifier.weight(1f).testTag("select_recharts_engine_button"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedMetricEngine == 0) Blue600 else adaptiveSlate100(),
+                    contentColor = if (selectedMetricEngine == 0) Color.White else adaptiveSlate600()
+                ),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(vertical = 10.dp, horizontal = 4.dp)
+            ) {
+                Icon(Icons.Default.QueryStats, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Recharts Suite", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = { selectedMetricEngine = 1 },
+                modifier = Modifier.weight(1f).testTag("select_canvas_engine_button"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedMetricEngine == 1) Blue600 else adaptiveSlate100(),
+                    contentColor = if (selectedMetricEngine == 1) Color.White else adaptiveSlate600()
+                ),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(vertical = 10.dp, horizontal = 4.dp)
+            ) {
+                Icon(Icons.Default.Brush, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Native Canvas", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        if (selectedMetricEngine == 0) {
+            val decName = viewModel.getDecryptedStudentName(student.encryptedName)
+            val cleanStudentName = decName.replace("\"", "\\\"").replace("\n", " ").replace("\r", " ")
+            
+            val trendJson = exams.mapIndexed { idx, name ->
+                val avg = examAverages.getOrElse(idx) { 0.0 }
+                "{\"name\":\"$name\",\"count\":${String.format(java.util.Locale.US, "%.1f", avg)}}"
+            }.joinToString(prefix = "[", postfix = "]")
+
+            val distJson = subjects.map { subject ->
+                val subMarks = marks.filter { it.subjectId == subject.id }
+                val mean = if (subMarks.isNotEmpty()) subMarks.map { it.marksObtained }.average() else 0.0
+                val minVal = if (subMarks.isNotEmpty()) subMarks.minOf { it.marksObtained } else 0.0
+                val maxVal = if (subMarks.isNotEmpty()) subMarks.maxOf { it.marksObtained } else 0.0
+                "{\"subject\":\"${subject.name}\",\"marks\":${String.format(java.util.Locale.US, "%.1f", mean)},\"min\":${minVal.toInt()},\"max\":${maxVal.toInt()}}"
+            }.joinToString(prefix = "[", postfix = "]")
+
+            val overallMean = if (marks.isNotEmpty()) marks.map { it.marksObtained }.average() else 0.0
+            val rank = when {
+                overallMean >= 90 -> "A+ Excellent"
+                overallMean >= 80 -> "A Good"
+                overallMean >= 70 -> "B+ Satisfactory"
+                overallMean >= 60 -> "B Average"
+                overallMean >= 50 -> "C Need Effort"
+                else -> "F Needs Tutorial"
+            }
+            val totalMarksEntered = marks.size
+            val overallStatsJson = "{\"average\":${String.format(java.util.Locale.US, "%.1f", overallMean)},\"rank\":\"$rank\",\"achievedRatio\":\"$totalMarksEntered Entries\",\"status\":\"Performance Loaded\"}"
+
+            val dashboardDataJson = """
+                {
+                    "studentName": "$cleanStudentName",
+                    "trendData": $trendJson,
+                    "distributionData": $distJson,
+                    "overallStats": $overallStatsJson
+                }
+            """.trimIndent()
+
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+            ) {
+                Column(modifier = Modifier.padding(4.dp)) {
+                    RechartsDashboard(jsonData = dashboardDataJson)
+                }
+            }
+        } else {
 
         // 1. KPI Exam-over-Exam Growth Chart (Line-drawn Canvas)
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
@@ -3053,6 +3571,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 }
             }
         }
+        }
 
         // --- FEATURE 1: Student Target Goal Planner & Progress Gap Analysis ---
         Spacer(modifier = Modifier.height(16.dp))
@@ -3328,6 +3847,18 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = tagColor
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                IconButton(
+                                    onClick = { viewModel.downloadStudentReportPdf(s) },
+                                    modifier = Modifier.size(24.dp).testTag("download_report_pdf_leaderboard_${s.id}")
+                                ) {
+                                    Icon(
+                                        Icons.Default.Download,
+                                        contentDescription = "Download Report PDF",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -4985,7 +5516,8 @@ fun ParentSubAccountsScreen(viewModel: MarksViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text(parent.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                val decParentName = viewModel.getDecryptedStudentName(parent.name)
+                                Text(decParentName, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 Text("Email: ${parent.email}", fontSize = 11.sp, color = Slate600)
                                 Text("Bound Child Student: $childName (RollNo: ${studentNameObj?.rollNo ?: "-"})", fontSize = 11.sp, color = Teal500, fontWeight = FontWeight.Medium)
                             }

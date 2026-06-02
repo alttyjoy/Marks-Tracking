@@ -50,7 +50,9 @@ data class Student(
     val rollNo: String = "",
     val studentClass: String = "",
     val schoolId: String = "", // school tenant link
-    val parentId: Long? = null // parent account link (if separate user role)
+    val parentId: Long? = null, // parent account link (if separate user role)
+    val parentName: String = "",
+    val schoolName: String = ""
 )
 
 // --- Subject ---

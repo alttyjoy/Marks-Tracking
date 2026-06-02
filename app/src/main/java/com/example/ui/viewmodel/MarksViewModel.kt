@@ -20,6 +20,7 @@ import com.example.data.repository.sha256
 import com.example.util.EncryptionUtil
 import com.example.util.GeminiHelper
 import com.example.util.PdfInvoiceGenerator
+import com.example.util.PdfReportGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -1060,7 +1061,13 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- Student & Sub-account Management ---
-    fun addNewStudent(name: String, rollNo: String, studentClass: String = "") {
+    fun addNewStudent(
+        name: String,
+        rollNo: String,
+        studentClass: String = "",
+        parentName: String = "",
+        schoolName: String = ""
+    ) {
         val user = currentUser ?: return
         if (name.isEmpty()) return
 
@@ -1095,12 +1102,22 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val encryptedName = EncryptionUtil.encrypt(name)
+            val resolvedSchoolName = if (schoolName.isNotBlank()) schoolName else {
+                if (user.role == "SCHOOL_ADMIN") user.schoolId else ""
+            }
+            val resolvedParentName = if (parentName.isNotBlank()) parentName else {
+                if (user.role == "INDIVIDUAL_PARENT") user.name else ""
+            }
+            val encryptedParentName = EncryptionUtil.encrypt(resolvedParentName)
+
             val student = Student(
                 encryptedName = encryptedName,
                 rollNo = rollNo,
                 studentClass = studentClass,
                 schoolId = if (user.role == "SCHOOL_ADMIN") user.schoolId else "",
-                parentId = if (user.role == "INDIVIDUAL_PARENT") user.id else null
+                parentId = if (user.role == "INDIVIDUAL_PARENT") user.id else null,
+                parentName = encryptedParentName,
+                schoolName = resolvedSchoolName
             )
             repository.insertStudent(student)
             actionMessage = "Add complete: encrypted name metadata index matches database."
@@ -1130,8 +1147,9 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
 
+            val encryptedParentName = EncryptionUtil.encrypt(parentName)
             val parentUser = UserAccount(
-                name = parentName,
+                name = encryptedParentName,
                 email = parentEmail,
                 passwordHash = passStr, // will hash inside repository
                 role = "VIEW_ONLY_PARENT",
@@ -1357,7 +1375,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                         val existingParent = repository.getUserByEmail(parentEmail)
                         if (existingParent == null) {
                             val autoParent = UserAccount(
-                                name = "Parent of $studName",
+                                name = EncryptionUtil.encrypt("Parent of $studName"),
                                 email = parentEmail,
                                 passwordHash = "Pass123",
                                 role = "VIEW_ONLY_PARENT",
@@ -1434,6 +1452,49 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 actionMessage = "Receipt PDF downloaded: ${file.name}. Saved in Invoices."
             } else {
                 actionMessage = "Error building invoice PDF."
+            }
+        }
+    }
+
+    // --- Student Report Card PDF Action (Paid plans only) ---
+    fun downloadStudentReportPdf(student: Student) {
+        val user = currentUser
+        if (user == null) {
+            actionMessage = "Please sign in to proceed."
+            return
+        }
+        val isPaid = user.planType != "FREE" || user.role == "SUPER_ADMIN"
+        if (!isPaid) {
+            actionMessage = "Report PDF download is a Professional feature. Please upgrade your plan."
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // Fetch direct marks list in IO thread
+                val studentMarks = withContext(Dispatchers.IO) {
+                    repository.getMarksForStudentSync(student.id)
+                }
+
+                val file = withContext(Dispatchers.IO) {
+                    PdfReportGenerator.generateStudentReportPdf(
+                        context = context,
+                        student = student,
+                        decryptedStudentName = getDecryptedStudentName(student.encryptedName),
+                        marks = studentMarks,
+                        subjects = _subjectsList.value,
+                        testTypes = _testTypesList.value
+                    )
+                }
+
+                if (file != null && file.exists()) {
+                    actionMessage = "Report PDF downloaded: ${file.name}. Saved in Reports."
+                } else {
+                    actionMessage = "Error compiling student report PDF."
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                actionMessage = "Failed compiling report PDF: ${e.message}"
             }
         }
     }
