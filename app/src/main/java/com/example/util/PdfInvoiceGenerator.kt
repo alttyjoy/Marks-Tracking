@@ -54,7 +54,7 @@ object PdfInvoiceGenerator {
 
         // Logo & Title
         canvas.drawText("MARKS TRACKING", 50f, 65f, titlePaint)
-        canvas.drawText("STUDENT MARKS TRACKING SAAS", 50f, 80f, mutedPaint)
+        canvas.drawText("STUDENT MARKS TRACKING SYSTEM", 50f, 80f, mutedPaint)
         
         canvas.drawText("TAX INVOICE / RECEIPT", 390f, 65f, headerPaint)
 
@@ -128,12 +128,12 @@ object PdfInvoiceGenerator {
         y += 12f
         canvas.drawText("2. Fully compliant with AES-256 local-first client student identifiers encoding.", 50f, y, mutedPaint)
         y += 12f
-        canvas.drawText("3. For technical queries regarding your subscriptions, mail to support@markstracking.saas.", 50f, y, mutedPaint)
+        canvas.drawText("3. For technical queries regarding your subscriptions, mail to support@markstracking.edu.com.", 50f, y, mutedPaint)
 
         // Footer signature placeholder
         y += 50f
         canvas.drawLine(380f, y, 510f, y, paint.apply { strokeWidth = 1f; color = Color.BLACK })
-        canvas.drawText("Authorized SaaS Coordinator", 380f, y + 15f, mutedPaint)
+        canvas.drawText("Authorized Accounts Coordinator", 380f, y + 15f, mutedPaint)
 
         pdfDocument.finishPage(page)
 

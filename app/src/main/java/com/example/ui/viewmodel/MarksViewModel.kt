@@ -243,12 +243,12 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                         if (config == null) {
                             val defaultConfig = AppConfig(
                                 dbHost = "jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432",
-                                dbName = "marks_tracking_saas",
+                                dbName = "marks_tracking_db",
                                 dbUser = "postgres_admin",
                                 dbPass = "SuperSecureDbPass*2026",
-                                smtpHost = "smtp.marks-tracking.saas.com",
+                                smtpHost = "smtp.marks-tracking.edu.com",
                                 smtpPort = "587",
-                                smtpUser = "alerts@markstracking.saas",
+                                smtpUser = "alerts@markstracking.edu",
                                 smtpPass = "SMTP_GatewayPass#99",
                                 gatewayKey = "rzp_test_N2hK91xf8YwPLz",
                                 gatewaySecret = "sec_test_JKX816f0q71p9x",
@@ -320,6 +320,30 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
             e.printStackTrace()
         } finally {
             isSeedingAdmin = false
+        }
+    }
+
+    fun getActiveBelongsToId(): String {
+        val user = currentUser ?: return "SUPER"
+        return when (user.role) {
+            "SUPER_ADMIN" -> {
+                val stud = selectedStudent
+                if (stud != null) {
+                    if (stud.schoolId.isNotEmpty()) stud.schoolId else stud.parentId?.toString() ?: "SUPER"
+                } else {
+                    "SUPER"
+                }
+            }
+            "SCHOOL_ADMIN" -> user.schoolId
+            "VIEW_ONLY_PARENT" -> {
+                val stud = selectedStudent
+                if (stud != null) {
+                    if (stud.schoolId.isNotEmpty()) stud.schoolId else "SCH-ADM-1"
+                } else {
+                    "SCH-ADM-1"
+                }
+            }
+            else -> user.id.toString()
         }
     }
 
@@ -804,12 +828,12 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 if (config == null) {
                     config = AppConfig(
                         dbHost = "jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432",
-                        dbName = "marks_tracking_saas",
+                        dbName = "marks_tracking_db",
                         dbUser = "postgres_admin",
                         dbPass = "SuperSecureDbPass*2026",
-                        smtpHost = "smtp.marks-tracking.saas.com",
+                        smtpHost = "smtp.marks-tracking.edu.com",
                         smtpPort = "587",
-                        smtpUser = "alerts@markstracking.saas",
+                        smtpUser = "alerts@markstracking.edu",
                         smtpPass = "SMTP_GatewayPass#99",
                         gatewayKey = "rzp_test_N2hK91xf8YwPLz",
                         gatewaySecret = "sec_test_JKX816f0q71p9x",
@@ -860,12 +884,12 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 if (config == null) {
                     config = AppConfig(
                         dbHost = "jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432",
-                        dbName = "marks_tracking_saas",
+                        dbName = "marks_tracking_db",
                         dbUser = "postgres_admin",
                         dbPass = "SuperSecureDbPass*2026",
-                        smtpHost = "smtp.marks-tracking.saas.com",
+                        smtpHost = "smtp.marks-tracking.edu.com",
                         smtpPort = "587",
-                        smtpUser = "alerts@markstracking.saas",
+                        smtpUser = "alerts@markstracking.edu",
                         smtpPass = "SMTP_GatewayPass#99",
                         gatewayKey = "rzp_test_N2hK91xf8YwPLz",
                         gatewaySecret = "sec_test_JKX816f0q71p9x",
@@ -918,12 +942,12 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 if (config == null) {
                     config = AppConfig(
                         dbHost = "jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432",
-                        dbName = "marks_tracking_saas",
+                        dbName = "marks_tracking_db",
                         dbUser = "postgres_admin",
                         dbPass = "SuperSecureDbPass*2026",
-                        smtpHost = "smtp.marks-tracking.saas.com",
+                        smtpHost = "smtp.marks-tracking.edu.com",
                         smtpPort = "587",
-                        smtpUser = "alerts@markstracking.saas",
+                        smtpUser = "alerts@markstracking.edu",
                         smtpPass = "SMTP_GatewayPass#99",
                         gatewayKey = "rzp_test_N2hK91xf8YwPLz",
                         gatewaySecret = "sec_test_JKX816f0q71p9x",
@@ -1420,20 +1444,20 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addSubject(name: String) {
         val user = currentUser ?: return
+        if (user.role == "VIEW_ONLY_PARENT") {
+            actionMessage = "View-Only Parent accounts cannot add subjects."
+            return
+        }
         viewModelScope.launch {
-            if (user.planType == "FREE") {
-                actionMessage = "SaaS Rules: FREE tier is capped to precisely the 6 standard seeded subjects. Upgrade to standard/school plan for infinite customizable subjects!"
+            if (user.planType == "FREE" && _subjectsList.value.size >= 15) {
+                actionMessage = "Academic Rules: Standard trial is capped to precisely 15 custom subjects. Upgrade parent/school plan for infinite customizable subjects!"
                 return@launch
             }
             if (name.isBlank()) {
                 actionMessage = "Subject name cannot be blank."
                 return@launch
             }
-            val belongsToId = when (user.role) {
-                "SCHOOL_ADMIN" -> user.schoolId
-                "VIEW_ONLY_PARENT" -> return@launch // View only cannot add
-                else -> user.id.toString()
-            }
+            val belongsToId = getActiveBelongsToId()
             val existing = _subjectsList.value
             if (existing.any { it.name.equals(name.trim(), true) }) {
                 actionMessage = "Subject \"${name.trim()}\" already exists."
@@ -1454,8 +1478,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeSubject(subject: Subject) {
         val user = currentUser ?: return
-        if (user.planType == "FREE") {
-            actionMessage = "SaaS Rules: FREE plan users cannot delete subjects. Upgrade to Paid plan for unlimited customization!"
+        if (user.planType == "FREE" && _subjectsList.value.size <= 3) {
+            actionMessage = "Academic Rules: Standard trial requires retaining at least 3 subjects for grading metrics."
             return
         }
         viewModelScope.launch {
@@ -1466,20 +1490,20 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addTestType(name: String) {
         val user = currentUser ?: return
+        if (user.role == "VIEW_ONLY_PARENT") {
+            actionMessage = "View-Only Parent accounts cannot add test configurations."
+            return
+        }
         viewModelScope.launch {
-            if (user.planType == "FREE") {
-                actionMessage = "SaaS Rules: FREE plan is limited to the standard 35 test schedules. Upgrade to Paid plan for custom test schedules!"
+            if (user.planType == "FREE" && _testTypesList.value.size >= 10) {
+                actionMessage = "Academic Rules: Standard trial is capped to precisely 10 custom test configurations. Upgrade parent/school plan for custom schedules!"
                 return@launch
             }
             if (name.isBlank()) {
                 actionMessage = "Test type name cannot be blank."
                 return@launch
             }
-            val belongsToId = when (user.role) {
-                "SCHOOL_ADMIN" -> user.schoolId
-                "VIEW_ONLY_PARENT" -> return@launch // View only cannot add
-                else -> user.id.toString()
-            }
+            val belongsToId = getActiveBelongsToId()
             val existing = _testTypesList.value
             if (existing.any { it.name.equals(name.trim(), true) }) {
                 actionMessage = "Test configuration \"${name.trim()}\" already exists."
@@ -1500,8 +1524,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeTestType(testType: TestType) {
         val user = currentUser ?: return
-        if (user.planType == "FREE") {
-            actionMessage = "SaaS Rules: FREE plan users cannot delete test types. Upgrade to Paid plan for custom schedules!"
+        if (user.planType == "FREE" && _testTypesList.value.size <= 3) {
+            actionMessage = "Academic Rules: Standard trial requires retaining at least 3 test configurations for grid analytics."
             return
         }
         viewModelScope.launch {

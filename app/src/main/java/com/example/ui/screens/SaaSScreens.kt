@@ -151,7 +151,7 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "SaaS Marks Tracking & School Analytics",
+                text = "Institutional Marks Tracking & School Analytics",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Medium,
                     color = Color.White.copy(alpha = 0.7f),
@@ -518,7 +518,7 @@ fun UserProfileDialog(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "This SaaS system isolates student ledger rows dynamically per school domain configuration. Grade ledger values are locally encrypted via AutoAES-256 keys mapped dynamically to sandbox hardware.",
+                    "This system isolates student ledger rows dynamically per school domain configuration. Grade ledger values are locally encrypted via AutoAES-256 keys mapped dynamically to sandbox hardware.",
                     fontSize = 11.sp,
                     color = adaptiveSlate600()
                 )
@@ -605,14 +605,14 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
 
     // Group 1: DB Settings
     var dbHost by remember { mutableStateOf("jdbc:postgresql://marks-tracker-tenant.c1.cloud.spanner:5432") }
-    var dbName by remember { mutableStateOf("marks_tracking_saas") }
+    var dbName by remember { mutableStateOf("marks_tracking_db") }
     var dbUser by remember { mutableStateOf("postgres_admin") }
     var dbPass by remember { mutableStateOf("SuperSecureDbPass*2026") }
 
     // Group 2: SMTP Settings
-    var smtpHost by remember { mutableStateOf("smtp.marks-tracking.saas.com") }
+    var smtpHost by remember { mutableStateOf("smtp.marks-tracking.edu.com") }
     var smtpPort by remember { mutableStateOf("587") }
-    var smtpUser by remember { mutableStateOf("alerts@markstracking.saas") }
+    var smtpUser by remember { mutableStateOf("alerts@markstracking.edu") }
     var smtpPass by remember { mutableStateOf("SMTP_GatewayPass#99") }
 
     // Group 3: Razorpay/PayU Gateway Settings
@@ -632,7 +632,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // SaaS Branding Header
+        // Institutional Branding Header
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -651,7 +651,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "Configure your SaaS instance variables directly in system cache",
+                text = "Configure your institutional instance variables directly in system cache",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -834,7 +834,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                     }
                     3 -> {
                         Text("Razorpay / PayU Integration Hub", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Integrate direct SaaS pricing gateways across Indian banking rails natively.", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
+                        Text("Integrate institutional pricing gateways across Indian banking rails natively.", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -865,7 +865,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                         )
                     }
                     4 -> {
-                        Text("Primary SaaS Administration Credentials", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Primary System Administration Credentials", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         OutlinedTextField(
@@ -951,7 +951,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
 }
 
 
-// --- 2. SaaS Themed Simple Login/Register Screen ---
+// --- 2. Simple Login/Register Screen ---
 @Composable
 fun LoginScreen(viewModel: MarksViewModel) {
     var email by remember { mutableStateOf("") }
@@ -1418,7 +1418,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
 
         // Demo Presets / Quick shortcuts panel to allow easy testing of role boundaries
         Spacer(modifier = Modifier.height(24.dp))
-        Text("🚀 SaaS Demo Gateways (Bypass Sandbox Testing)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text("🚀 Rapid Demo Gateways (Bypass Sandbox Testing)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
@@ -1735,13 +1735,13 @@ fun LoginScreen(viewModel: MarksViewModel) {
                         when (complianceDocToShow) {
                             "TC" -> {
                                 Text(
-                                    "Welcome to Marks Tracking SaaS Solution (internally 'EduGrade'). By registering an account and choosing a billing plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
+                                    "Welcome to Marks Tracking Solution (internally 'EduGrade'). By registering an account and choosing an academic plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
                                     "1. User Account Ownership Rights:\n" +
                                     "You are responsible for keeping passwords and local credentials safe. Under the School Plan, you may provision parent sub-accounts with read-only view access of specific student records.\n\n" +
                                     "2. Proper System Use:\n" +
                                     "You must not decrypt database structures, disassemble system cache blocks, or inject malicious payloads on underlying cloud schemas. All educational grades represent accurate academic inputs.\n\n" +
                                     "3. Annual Licensing Renewal:\n" +
-                                    "SaaS Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
+                                    "Academic Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
                                     fontSize = 10.sp,
                                     lineHeight = 14.sp
                                 )
@@ -1774,7 +1774,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                             }
                             "SHIPPING" -> {
                                 Text(
-                                    "This EduGrade application operates purely as a Software-as-a-Service (SaaS) digital delivery model:\n\n" +
+                                    "This EduGrade application operates purely as an institutional digital delivery model:\n\n" +
                                     "1. Instant Digital Delivery:\n" +
                                     "There are strictly no physical books, report cards, printed documents, or CD packages shipped. Digital licensing privileges are automatically granted. Immediately when Razorpay or PayU checkout API completes successfully, your subscription model adjusts instantly, enabling premium creation modules.\n\n" +
                                     "2. PDF Invoices:\n" +
@@ -1785,7 +1785,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                             }
                             "CONTACT" -> {
                                 Text(
-                                    "Dedicated SaaS grievance officer contact parameters:\n\n" +
+                                    "Dedicated grievance officer contact parameters:\n\n" +
                                     "• Registered Corporate Entity: EduGrade Solutions Pvt Ltd\n" +
                                     "• Official Regulatory Support Email: mail@altty.com\n" +
                                     "• Support Desk Phone: +91 79815 85715\n" +
@@ -3523,7 +3523,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
 }
 
 
-// --- 5. SaaS Billing & Razorpay Payments Simulator Screen ---
+// --- 5. Billing & Razorpay Payments Simulator Screen ---
 data class PaymentCheckoutDetails(
     val planType: String,
     val roleName: String,
@@ -3606,7 +3606,7 @@ fun PaymentGatewayCheckoutDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Secure SaaS Payment Hub",
+                                text = "Secure Unified Payment Hub",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
@@ -3726,7 +3726,7 @@ fun PaymentGatewayCheckoutDialog(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Base SaaS Premium Cost:", fontSize = 10.sp, color = adaptiveSlate600())
+                                Text("Base Premium Cost:", fontSize = 10.sp, color = adaptiveSlate600())
                                 Text("₹${String.format("%.2f", basePrice)}", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                             Row(
@@ -4106,13 +4106,13 @@ fun PaymentGatewayCheckoutDialog(
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    "SAAS TRANSACTION SUCCESSFUL!",
+                                    "TRANSACTION SUCCESSFUL!",
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color(0xFF2E7D32),
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    "Allocating system licenses for $selectedGateway...",
+                                    "Allocating plan licenses for $selectedGateway...",
                                     fontSize = 11.sp,
                                     color = adaptiveSlate600()
                                 )
@@ -4243,7 +4243,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
         }
 
         // --- SECTION B: THE UNIFIED ALL-TIME PRICING TABLE ---
-        Text("Academic SaaS System Subscription Plans", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("Academic System Subscription Plans", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text("Explore three robust plans. Select any plan to instantly downgrade or upgrade for testing.", style = MaterialTheme.typography.bodySmall, color = Slate600)
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -4781,13 +4781,13 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                         when (complianceDocToShow) {
                             "TC" -> {
                                 Text(
-                                    "Welcome to Marks Tracking SaaS Solution (internally 'EduGrade'). By registering an account and choosing a billing plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
+                                    "Welcome to Marks Tracking Solution (internally 'EduGrade'). By registering an account and choosing an academic plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
                                     "1. User Account Ownership Rights:\n" +
                                     "You are responsible for keeping passwords and local credentials safe. Under the School Plan, you may provision parent sub-accounts with read-only view access of specific student records.\n\n" +
                                     "2. Proper System Use:\n" +
                                     "You must not decrypt database structures, disassemble system cache blocks, or inject malicious payloads on underlying cloud schemas. All educational grades represent accurate academic inputs.\n\n" +
                                     "3. Annual Licensing Renewal:\n" +
-                                    "SaaS Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
+                                    "Academic Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
                                     fontSize = 10.sp,
                                     lineHeight = 14.sp
                                 )
@@ -4820,7 +4820,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                             }
                             "SHIPPING" -> {
                                 Text(
-                                    "This EduGrade application operates purely as a Software-as-a-Service (SaaS) digital delivery model:\n\n" +
+                                    "This EduGrade application operates purely as an institutional digital delivery model:\n\n" +
                                     "1. Instant Digital Delivery:\n" +
                                     "There are strictly no physical books, report cards, printed documents, or CD packages shipped. Digital licensing privileges are automatically granted. Immediately when Razorpay or PayU checkout API completes successfully, your subscription model adjusts instantly, enabling premium creation modules.\n\n" +
                                     "2. PDF Invoices:\n" +
@@ -4831,7 +4831,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                             }
                             "CONTACT" -> {
                                 Text(
-                                    "Dedicated SaaS grievance officer contact parameters:\n\n" +
+                                    "Dedicated grievance officer contact parameters:\n\n" +
                                     "• Registered Corporate Entity: EduGrade Solutions Pvt Ltd\n" +
                                     "• Official Regulatory Support Email: mail@altty.com\n" +
                                     "• Support Desk Phone: +91 79815 85715\n" +

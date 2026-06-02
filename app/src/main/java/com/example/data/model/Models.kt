@@ -3,7 +3,7 @@ package com.example.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// --- SaaS System Configuration Entity (Setup Wizard) ---
+// --- System Configuration Entity (Setup Wizard) ---
 @Entity(tableName = "app_config")
 data class AppConfig(
     @PrimaryKey val id: Int = 1,

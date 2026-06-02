@@ -65,7 +65,7 @@ private fun getScaledTypography(scale: Float): androidx.compose.material3.Typogr
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Set to false to strictly enforce our custom professional Slate&Teal SaaS identity
+    dynamicColor: Boolean = false, // Set to false to strictly enforce our custom professional Slate&Teal institutional identity
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
