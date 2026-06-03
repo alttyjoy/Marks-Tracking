@@ -1072,7 +1072,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         if (name.isEmpty()) return
 
         viewModelScope.launch {
-            if (user.role != "SUPER_ADMIN") {
+            if (user.role != "SUPER_ADMIN" && user.role != "SCHOOL_ADMIN") {
                 // Free plan cap check (limit 1 student)
                 if (user.planType == "FREE") {
                     val currentCount = _studentsList.value.size
@@ -1329,7 +1329,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                         EncryptionUtil.decrypt(it.encryptedName).equals(studName, true) && it.rollNo == rollNo 
                     }
                     if (studentObj == null) {
-                        if (user.role != "SUPER_ADMIN") {
+                        if (user.role != "SUPER_ADMIN" && user.role != "SCHOOL_ADMIN") {
                             // Free Plan cap check
                             if (user.planType == "FREE") {
                                 val count = _studentsList.value.size + insertedCount

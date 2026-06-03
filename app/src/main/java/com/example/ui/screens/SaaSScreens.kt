@@ -128,7 +128,7 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
         ) {
             Image(
                 painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.img_app_icon_1779790784801),
-                contentDescription = "EduGrade Logo",
+                contentDescription = "AaVi Technos Logo",
                 modifier = Modifier
                     .size(160.dp)
                     .graphicsLayer(
@@ -144,7 +144,7 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                text = "EduGrade",
+                text = "AaVi Technos",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
@@ -974,6 +974,8 @@ fun LoginScreen(viewModel: MarksViewModel) {
     var regPassword by remember { mutableStateOf("") }
     var regPlan by remember { mutableStateOf("FREE") } // "FREE", "INDIVIDUAL_PARENT_PLAN", "SCHOOL_PLAN"
     var regSchoolId by remember { mutableStateOf("") }
+    var acceptTerms by remember { mutableStateOf(false) }
+    var acceptPrivacy by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1305,8 +1307,72 @@ fun LoginScreen(viewModel: MarksViewModel) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Terms & Conditions Checkbox Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { acceptTerms = !acceptTerms }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = acceptTerms,
+                                onCheckedChange = { acceptTerms = it },
+                                modifier = Modifier.testTag("reg_accept_terms_checkbox")
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("I accept the ", fontSize = 11.sp, color = adaptiveSlate600())
+                                Text(
+                                    text = "Terms & Use",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { selectedComplianceDoc = "TC" }
+                                )
+                            }
+                        }
+
+                        // Privacy Policy Checkbox Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { acceptPrivacy = !acceptPrivacy }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = acceptPrivacy,
+                                onCheckedChange = { acceptPrivacy = it },
+                                modifier = Modifier.testTag("reg_accept_privacy_checkbox")
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("I accept the ", fontSize = 11.sp, color = adaptiveSlate600())
+                                Text(
+                                    text = "Privacy Policy",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { selectedComplianceDoc = "PRIVACY" }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         Button(
                             onClick = {
+                                if (!acceptTerms || !acceptPrivacy) {
+                                    viewModel.authError = "You must accept both the Terms & Use and the Privacy Policy to proceed with registration."
+                                    return@Button
+                                }
                                 viewModel.executeRegister(
                                     name = regName,
                                     email = regEmail,
@@ -1676,7 +1742,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "© 2026 EduGrade Corp. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
+                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
                     fontSize = 8.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -1738,73 +1804,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                             .padding(12.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        when (complianceDocToShow) {
-                            "TC" -> {
-                                Text(
-                                    "Welcome to Marks Tracking Solution (internally 'EduGrade'). By registering an account and choosing an academic plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
-                                    "1. User Account Ownership Rights:\n" +
-                                    "You are responsible for keeping passwords and local credentials safe. Under the School Plan, you may provision parent sub-accounts with read-only view access of specific student records.\n\n" +
-                                    "2. Proper System Use:\n" +
-                                    "You must not decrypt database structures, disassemble system cache blocks, or inject malicious payloads on underlying cloud schemas. All educational grades represent accurate academic inputs.\n\n" +
-                                    "3. Annual Licensing Renewal:\n" +
-                                    "Academic Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "PRIVACY" -> {
-                                Text(
-                                    "Privacy and robust data isolation are fundamental to our architecture:\n\n" +
-                                    "1. Client-Side Grade Protection:\n" +
-                                    "Academic logs, student assessment marks, and subject roll structures are isolated inside multi-tenant rows. Parents from Screen A cannot view student lists from Screen B unless a verified view-only authentication key is generated by the administrator.\n\n" +
-                                    "2. Collected Metadata:\n" +
-                                    "We store active transaction metadata and administrator contact email handles to verify compliance status. No web trackers, third-party sales cookies, or analytics scripts are bundled.\n\n" +
-                                    "3. Third Party Handshakes:\n" +
-                                    "When triggering a secure upgrade subscription, cards, CVVs, and mobile banking identifiers are processed directly over encrypted merchant channels (Razorpay and PayU).",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "REFUND" -> {
-                                Text(
-                                    "We strive to offer premium client-focused grades reporting. Please read our operational billing rollback guidelines:\n\n" +
-                                    "1. Right to Downgrade:\n" +
-                                    "Subscribers can transition or request a licensing downgrade back to the Free Plan (Rs 0.00/Yr) at any point directly from the Billing Suite controls.\n\n" +
-                                    "2. Refund Processing Timeline:\n" +
-                                    "In case of accidental duplicate payment triggers across Indian Banking Rails, a full refund representing 100% of the principal + GST is issued within 5 to 7 working business days. Credits are processed automatically back to the originating bank instrument/card/UPI address.\n\n" +
-                                    "3. Charge dispute request:\n" +
-                                    "Reach out to the registered merchant supervisor at mail@altty.com along with transaction receipt IDs.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "SHIPPING" -> {
-                                Text(
-                                    "This EduGrade application operates purely as an institutional digital delivery model:\n\n" +
-                                    "1. Instant Digital Delivery:\n" +
-                                    "There are strictly no physical books, report cards, printed documents, or CD packages shipped. Digital licensing privileges are automatically granted. Immediately when Razorpay or PayU checkout API completes successfully, your subscription model adjusts instantly, enabling premium creation modules.\n\n" +
-                                    "2. PDF Invoices:\n" +
-                                    "Tax compliant breakdowns (including 18% CGST/SGST calculations) are written to local cache stores instantly and are shareable in real-time.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "CONTACT" -> {
-                                Text(
-                                    "Dedicated grievance officer contact parameters:\n\n" +
-                                    "• Registered Corporate Entity: EduGrade Solutions Pvt Ltd\n" +
-                                    "• Official Regulatory Support Email: mail@altty.com\n" +
-                                    "• Support Desk Phone: +91 79815 85715\n" +
-                                    "• Corporate Office Address: 150/2RT, Vijaya Nagar Colony, HD-500057\n" +
-                                    "• General Ticketing Turnaround: Within 12 to 24 hours of receiving formal mail feedback.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "GUIDE" -> {
-                                HowToUseAndFAQSection(expandedByDefault = true)
-                            }
-                        }
+                        PolicyDocumentContent(complianceDocToShow!!)
                     }
                 }
             }
@@ -2101,7 +2101,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                             Text("Add Student")
                         }
                     }
-                    if (user.role != "SUPER_ADMIN") {
+                    if (user.role != "SUPER_ADMIN" && user.role != "SCHOOL_ADMIN") {
                         val limitText = when {
                             user.planType == "FREE" -> "Notice: Free Plan limited to 1 student directory. Current enrollment: ${students.size}/1"
                             user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "INDIVIDUAL_PARENT" -> "Notice: Parents Plan limited to 4 children files. Current enrollment: ${students.size}/4"
@@ -2118,6 +2118,13 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                             } else {
                                 adaptiveSlate600()
                             }
+                        )
+                    } else if (user.role == "SCHOOL_ADMIN") {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            "Notice: Administrative Account | Unlimited Student Directories & Marks Ledger",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Teal500
                         )
                     }
                 }
@@ -5247,7 +5254,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "© 2026 EduGrade Corp. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
+                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
                     fontSize = 8.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -5309,73 +5316,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                             .padding(12.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        when (complianceDocToShow) {
-                            "TC" -> {
-                                Text(
-                                    "Welcome to Marks Tracking Solution (internally 'EduGrade'). By registering an account and choosing an academic plan (Free, Parent, or School Plan), you agree to comply with and are legally bound by these conditions:\n\n" +
-                                    "1. User Account Ownership Rights:\n" +
-                                    "You are responsible for keeping passwords and local credentials safe. Under the School Plan, you may provision parent sub-accounts with read-only view access of specific student records.\n\n" +
-                                    "2. Proper System Use:\n" +
-                                    "You must not decrypt database structures, disassemble system cache blocks, or inject malicious payloads on underlying cloud schemas. All educational grades represent accurate academic inputs.\n\n" +
-                                    "3. Annual Licensing Renewal:\n" +
-                                    "Academic Plans are processed or simulated via dynamic checkout tokens (Razorpay / PayU.In). The parent tier cost is Rs 100/Yr, and the comprehensive school tier represents Rs 10,000/Yr.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "PRIVACY" -> {
-                                Text(
-                                    "Privacy and robust data isolation are fundamental to our architecture:\n\n" +
-                                    "1. Client-Side Grade Protection:\n" +
-                                    "Academic logs, student assessment marks, and subject roll structures are isolated inside multi-tenant rows. Parents from Screen A cannot view student lists from Screen B unless a verified view-only authentication key is generated by the administrator.\n\n" +
-                                    "2. Collected Metadata:\n" +
-                                    "We store active transaction metadata and administrator contact email handles to verify compliance status. No web trackers, third-party sales cookies, or analytics scripts are bundled.\n\n" +
-                                    "3. Third Party Handshakes:\n" +
-                                    "When triggering a secure upgrade subscription, cards, CVVs, and mobile banking identifiers are processed directly over encrypted merchant channels (Razorpay and PayU).",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "REFUND" -> {
-                                Text(
-                                    "We strive to offer premium client-focused grades reporting. Please read our operational billing rollback guidelines:\n\n" +
-                                    "1. Right to Downgrade:\n" +
-                                    "Subscribers can transition or request a licensing downgrade back to the Free Plan (Rs 0.00/Yr) at any point directly from the Billing Suite controls.\n\n" +
-                                    "2. Refund Processing Timeline:\n" +
-                                    "In case of accidental duplicate payment triggers across Indian Banking Rails, a full refund representing 100% of the principal + GST is issued within 5 to 7 working business days. Credits are processed automatically back to the originating bank instrument/card/UPI address.\n\n" +
-                                    "3. Charge dispute request:\n" +
-                                    "Reach out to the registered merchant supervisor at mail@altty.com along with transaction receipt IDs.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "SHIPPING" -> {
-                                Text(
-                                    "This EduGrade application operates purely as an institutional digital delivery model:\n\n" +
-                                    "1. Instant Digital Delivery:\n" +
-                                    "There are strictly no physical books, report cards, printed documents, or CD packages shipped. Digital licensing privileges are automatically granted. Immediately when Razorpay or PayU checkout API completes successfully, your subscription model adjusts instantly, enabling premium creation modules.\n\n" +
-                                    "2. PDF Invoices:\n" +
-                                    "Tax compliant breakdowns (including 18% CGST/SGST calculations) are written to local cache stores instantly and are shareable in real-time.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "CONTACT" -> {
-                                Text(
-                                    "Dedicated grievance officer contact parameters:\n\n" +
-                                    "• Registered Corporate Entity: EduGrade Solutions Pvt Ltd\n" +
-                                    "• Official Regulatory Support Email: mail@altty.com\n" +
-                                    "• Support Desk Phone: +91 79815 85715\n" +
-                                    "• Corporate Office Address: 150/2RT, Vijaya Nagar Colony, HD-500057\n" +
-                                    "• General Ticketing Turnaround: Within 12 to 24 hours of receiving formal mail feedback.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            "GUIDE" -> {
-                                HowToUseAndFAQSection(expandedByDefault = true)
-                            }
-                        }
+                        PolicyDocumentContent(complianceDocToShow!!)
                     }
                 }
             }
@@ -5719,6 +5660,116 @@ fun HowToUseAndFAQSection(expandedByDefault: Boolean = true) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun PolicyDocumentContent(docType: String) {
+    when (docType) {
+        "TC" -> {
+            Text(
+                "Welcome to Marks Tracking Solution (internally 'AaVi Technos'). These Terms and Conditions constitute a legally binding agreement made between you, whether personally or on behalf of an entity (\"you\" or \"user\") and AaVi Technos (\"company\", \"we\", \"us\", or \"our\"), concerning your access to and use of our SaaS-based academic reporting mobile application. Please read these terms carefully:\n\n" +
+                "1. User Representation & Registration Legality:\n" +
+                "By registering an account and utilizing our academic tracking features, you warrant that all registration data is authentic, accurate, and current. You agree that access privileges are restricted to legal educators, school administrators, tutors, or parent guardians who are at least 18 years of age. You accept full responsibility for all activities, grade modifications, and academic inputs recorded under your login credentials.\n\n" +
+                "2. System Licensing Tiers & Multi-User Governance:\n" +
+                "• Free Trial Tier: Provides access to standard database entries with strict constraints (limit 1 student profile, limit 15 subjects, limit 10 exams). Highly optimized for minor evaluations.\n" +
+                "• Parent Subscription Tier: Specifically designed for families to monitor up to 4 child indices securely. Subject to an annual subscription fee of Rs 100/Yr.\n" +
+                "• School Administrative Tier: Grants unlimited student directories and full administrative command. Subject to an annual subscription fee of Rs 10,000/Yr, allowing you to establish independent, view-only parent sub-accounts.\n\n" +
+                "3. Operational Rules & Technical Prohibitions:\n" +
+                "You are strictly prohibited from:\n" +
+                "• Decrypting database rows or attempting to reverse-engineer our client-side AES-256 local encryption nodes.\n" +
+                "• Introducing or transmitting malware, spyware, trojans, or scripts capable of disrupting operations.\n" +
+                "• Scraping, crawling, harvesting, or extracting data systematically from our structural schemas.\n" +
+                "• Tampering with billing simulation mechanisms or Razorpay/PayU payment gateways.\n" +
+                "• Manipulating student ledger scores in a fraudulent manner representing false performance to third institutions.\n\n" +
+                "4. Subscription Renewals, Billing Cycles, & Taxes:\n" +
+                "Premium plans are billed annually on a recurring or one-time prepaid basis. Subscription transactions are subject to standard central and local tax guidelines (such as 18% CGST/SGST within Indian jurisdictions). Subscription fees are due in full upon checkout and are processed over encrypted, PCI-DSS compliant bank gateways.\n\n" +
+                "5. Limitation of Liability & Warranty Disclaimers:\n" +
+                "This application and all generated materials are provided on an \"as-is\" and \"as-available\" basis. We disclaim all warranties of any kind, whether express or implied. In no event shall AaVi Technos or its directors be liable for any direct, indirect, consequential, exemplary, or incidental damages arising from server connectivity disruptions or analytical compilation variations. Our maximum liability under all claims is strictly capped at the cumulative amount paid by you during the active 12-month licensing cycle.\n\n" +
+                "6. Company Proprietary Rights & Copyright Protection:\n" +
+                "Unless otherwise indicated, our dashboards, Canvas-drawn graphs, local database tables, custom source codes, brand names, visual logos, and interactive widgets are our proprietary property and protected by national copyright and trademark protections. Copying, distributing, or republishing these materials without written pre-authorization is strictly prohibited.\n\n" +
+                "7. Amendment of Terms:\n" +
+                "We reserve the right, in our sole discretion, to modify or update these Terms and Conditions at any time. Active users will be notified via in-app bulletin announcements or support emails. Continued usage of our system represents absolute consent to revised terms.",
+                fontSize = 10.sp,
+                lineHeight = 14.sp
+            )
+        }
+        "PRIVACY" -> {
+            Text(
+                "We at AaVi Technos are deeply committed to protecting your privacy and isolating your academic data. This Privacy Policy details how we collect, safeguard, and process your record schemas in compliance with the Digital Personal Data Protection (DPDP) Act and standard safety directives:\n\n" +
+                "1. Academic Data We Collect:\n" +
+                "• User Account Profiles: Registering emails, encrypted passwords, selected plan categories, transaction tokens, and administrative roles.\n" +
+                "• Student Records: Decrypted names (stored locally with secure AES-256 wrapping layers), custom grade levels, roll numbers, and parent details.\n" +
+                "• Academic Performance Ledger: Subject databases, custom examination names, max scores, marks obtained, and date logs.\n" +
+                "• Billing Logs: External payment gateway transaction IDs, plan identifiers, and dates of purchase. We do not store credit card or CVV details raw.\n\n" +
+                "2. Advanced Isolation & Cryptographical Protection:\n" +
+                "We enforce strict database tenancy parameters. All student identity properties are wrapped locally using cryptographic algorithms. No parent user can query, scan, or render the dashboard index of another family without generating a specific view-only sub-account token authorized by the institution.\n\n" +
+                "3. Utility of Collected Data:\n" +
+                "Data collected is processed solely for functional utility, including:\n" +
+                "• Compiling multi-metric scholastic achievement ratings and trends.\n" +
+                "• Generating tax-compliant invoicing and download receipts.\n" +
+                "• Performing secure Gemini API evaluations on student weak points.\n" +
+                "• Authenticating parent visual feedback screens.\n\n" +
+                "4. Zero Advertising & Third-Party Sharing Rules:\n" +
+                "We do not sell, rent, monetize, or lease student profiles or report card trends to any corporate advertisers, educational consultancy networks, or brokers. Your data belongs strictly to you and your aligned school system.\n\n" +
+                "5. Integrations & Security Partners:\n" +
+                "• Razorpay / PayU: Facilitates fully encrypted PCI-DSS banking integrations for subscription checkouts.\n" +
+                "• Google Gemini AI: Processes academic summaries using advanced, isolated tokens. High-security filters prevent training on user-entered test lists.\n\n" +
+                "6. Data Retention & Secure Scrubbing:\n" +
+                "Active records are retained in database spaces as long as you maintain an active account. Upon executing an account deletion command, all associated lists, marks, sub-parents, and reports are irreversibly wiped from active local memory slots and cloud caching frameworks.",
+                fontSize = 10.sp,
+                lineHeight = 14.sp
+            )
+        }
+        "REFUND" -> {
+            Text(
+                "AaVi Technos maintains a clear, client-first policy regarding premium subscription modifications and transaction rollbacks. Please review our refund guidelines:\n\n" +
+                "1. Seamless Plan Cancellation & Free Tier Downgrade:\n" +
+                "Upgraded users can choose to cancel their active premium subscription at any time. Simply navigate to the Billing Suite and tap the option to downgrade. Your dashboard privileges will continue until the active billing cycle terminates, after which the database will seamlessly revert to the standard Free Tier with its applicable limits.\n\n" +
+                "2. General Eligibility & Multi-Tier Refund Timeline:\n" +
+                "We understand that billing anomalies can happen. If you encounter any of the following, you are entitled to a full, 100% refund of the paid license fee:\n" +
+                "• Accidental duplicate checkout attempts processing twice within a 24-hour window.\n" +
+                "• Service activation failures where the premium license does not apply within 24 hours of successful bank confirmation.\n" +
+                "Refunds are approved, compiled, and dispatched within 5 to 7 working business days, returning directly to the originating payment instrument (Credit Card, UPI, Debit Card, or Netbanking transfer).\n\n" +
+                "3. Cancellation Limitations:\n" +
+                "Refund requests submitted beyond 14 calendar days of the initial annual license purchase are not eligible for cash rollbacks, but we will gladly provide prorated corporate credits for future licenses or school expansion plans.\n\n" +
+                "4. Submission Process:\n" +
+                "To submit a query for evaluation, please email mail@altty.com with the subject line 'Subscription Refund Request' along with your corporate transaction ID, billing email, and matching bank transaction receipt.",
+                fontSize = 10.sp,
+                lineHeight = 14.sp
+            )
+        }
+        "SHIPPING" -> {
+            Text(
+                "As an enterprise-tier educational software platform, all licensing models and report components are delivered strictly via internet-based digital transmission protocols:\n\n" +
+                "1. Immediate Access Service Level Agreement (SLA):\n" +
+                "We do not ship physical textbook assets, student report card booklets, physical storage drives, or printed credentials. There are no physical shipping, packaging, courier, or logistical fees. Your premium features (e.g., unlimited marks tracking, custom PDF compilations, parent accounts) are initialized immediately in real-time within 5 seconds of receiving checkout confirmation from our payment systems.\n\n" +
+                "2. Real-Time PDF Invoice Compilation:\n" +
+                "A tax compliant digital receipt and billing invoice (illustrating CGST/SGST breakdowns where applicable) is compiled locally into your Invoices section in real-time. You are free to view, share, or download these locally compiled PDF assets anytime.\n\n" +
+                "3. Operational Reliability & Service Continuity:\n" +
+                "We strive to maintain a 99.9% uptime for cloud synchronization and backup operations. In the event of standard local network or cloud database maintenance, cached operations ensure you can continue tracking and editing student lists offline safely.",
+                fontSize = 10.sp,
+                lineHeight = 14.sp
+            )
+        }
+        "CONTACT" -> {
+            Text(
+                "If you have queries, grievances, feedback, or require immediate customer assist pipelines, please reference our official contact parameters:\n\n" +
+                "• Registered Corporate Entity: AaVi Technos\n" +
+                "• Official Support Email: mail@altty.com\n" +
+                "• Grievance Hotline Help Desk: +91 79815 85715\n" +
+                "• Headquarters Physical Address: 150/2RT, Vijaya Nagar Colony, HYD-500057, Telangana, India\n" +
+                "• General Turnaround SLA: We reply to all educational queries within 12 to 24 hours of receiving formal contact mail or phone requests.",
+                fontSize = 10.sp,
+                lineHeight = 14.sp
+            )
+        }
+        "GUIDE" -> {
+            HowToUseAndFAQSection(expandedByDefault = true)
+        }
+        else -> {
+            Text("Educational operational policies compiled securely.", fontSize = 10.sp, lineHeight = 14.sp)
         }
     }
 }
