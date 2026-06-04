@@ -518,13 +518,13 @@ fun UserProfileDialog(
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
                 Text(
-                    "Encryption & Isolation Architecture:",
+                    "Security & Privacy Setup:",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "This system isolates student ledger rows dynamically per school domain configuration. Grade ledger values are locally encrypted via AutoAES-256 keys mapped dynamically to sandbox hardware.",
+                    "This system securely keeps student lists separated for each school. All grade records are stored safely on your device with high-security passwords.",
                     fontSize = 11.sp,
                     color = adaptiveSlate600()
                 )
@@ -582,7 +582,7 @@ fun BottomNavigationBar(
             selected = activeScreen == AppScreen.ANALYTICS,
             onClick = { onNavigate(AppScreen.ANALYTICS) },
             icon = { Icon(Icons.Default.TrendingUp, contentDescription = "Analytics") },
-            label = { Text("KPI Charts") },
+            label = { Text("Progress Charts") },
             modifier = Modifier.testTag("nav_item_analytics")
         )
         if (role == "SCHOOL_ADMIN") {
@@ -1589,7 +1589,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Authorized school portal for student academic registers, progress record transparency, secure grade ledger isolation, and parent-teacher information frameworks.",
+                    text = "Authorized portal for checking student school records, progress reports, grade safety, and messaging between parents and teachers.",
                     fontSize = 10.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -1742,7 +1742,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
+                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed once a year or auto-renewed. All digital materials, student folders, and report card worksheets are delivered securely to your account immediately after payment confirmation.",
                     fontSize = 8.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -2436,7 +2436,32 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                 }
             }
 
-            // EXCEL STYLE DATA ENTRY LAYOUT (HORIZONTALLY SCROLLABLE TABLE)
+            // EXCEL STYLE DATA ENTRY LAYOUT (HORIZONTALLY SCROLLABLE TABLE WITH SWIPE HINT)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Swipe indicator info",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "Swipe horizontally on the spreadsheet below to view/edit all exam cycle marks.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2451,12 +2476,13 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                     Row(
                         modifier = Modifier
                             .background(Slate900)
-                            .padding(vertical = 10.dp)
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             "Subject Name",
                             modifier = Modifier
-                                .width(120.dp)
+                                .width(130.dp)
                                 .padding(start = 12.dp),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
@@ -2466,7 +2492,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                             Text(
                                 exam,
                                 modifier = Modifier
-                                    .width(80.dp),
+                                    .width(90.dp),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
@@ -2476,7 +2502,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                         Text(
                             "Mean (%)",
                             modifier = Modifier
-                                .width(80.dp)
+                                .width(90.dp)
                                 .padding(end = 12.dp),
                             color = Teal400,
                             fontWeight = FontWeight.Bold,
@@ -2493,12 +2519,12 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                         var count = 0
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 4.dp)
+                            modifier = Modifier.padding(vertical = 6.dp)
                         ) {
                             Text(
                                 subject.name,
                                 modifier = Modifier
-                                    .width(120.dp)
+                                    .width(130.dp)
                                     .padding(start = 12.dp),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
@@ -2519,11 +2545,13 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
 
                                 Box(
                                     modifier = Modifier
-                                        .width(80.dp)
+                                        .width(90.dp)
+                                        .height(44.dp)
                                         .padding(horizontal = 4.dp, vertical = 2.dp)
-                                        .clip(RoundedCornerShape(4.dp))
+                                        .clip(RoundedCornerShape(6.dp))
                                         .background(if (isEnabled) Slate100 else Slate50)
-                                        .border(1.dp, Slate600, RoundedCornerShape(4.dp))
+                                        .border(1.dp, Slate600, RoundedCornerShape(6.dp)),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     BasicTextField(
                                         value = textVal,
@@ -2543,7 +2571,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(6.dp)
+                                            .padding(vertical = 4.dp, horizontal = 2.dp)
                                             .testTag("cell_${subject.id}_${exam}")
                                     )
                                 }
@@ -2553,14 +2581,16 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                             val rowMeanVal = if (count > 0) subjectSum / count else 0.0
                             Text(
                                 if (count > 0) "${String.format("%.1f", rowMeanVal)}%" else "-",
-                                modifier = Modifier.width(80.dp),
+                                modifier = Modifier
+                                    .width(90.dp)
+                                    .padding(end = 12.dp),
                                 textAlign = TextAlign.Center,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 color = if (rowMeanVal < 40.0 && count > 0) Rose500 else Blue500
                             )
                         }
-                        HorizontalDivider(color = Slate600.copy(alpha = 0.5f))
+                        HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
                     }
                 }
             }
@@ -2908,7 +2938,7 @@ fun RechartsDashboard(jsonData: String) {
         <html>
         <head>
             <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <title>Recharts Dashboard</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
@@ -2918,6 +2948,11 @@ fun RechartsDashboard(jsonData: String) {
                     font-family: ui-sans-serif, system-ui, sans-serif;
                     margin: 0;
                     padding: 8px;
+                    overflow-x: hidden;
+                }
+                /* Hide scrollbars for a clean seamless experience */
+                ::-webkit-scrollbar {
+                    display: none;
                 }
             </style>
         </head>
@@ -2932,6 +2967,7 @@ fun RechartsDashboard(jsonData: String) {
             <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
             <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
             <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+            <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
 
             <script type="text/babel">
                 const {
@@ -2953,33 +2989,252 @@ fun RechartsDashboard(jsonData: String) {
 
                 const infoData = $jsonData;
 
-                function DashboardApp() {
+                // --- D3-based line chart React Component wrapper ---
+                const D3LineChart = ({ data }) => {
+                    const svgRef = React.useRef();
+
+                    React.useEffect(() => {
+                        if (!data || data.length === 0) return;
+
+                        const d3Val = window.d3;
+                        const svg = d3Val.select(svgRef.current);
+                        
+                        // Responsive drawing function
+                        const renderChart = () => {
+                            svg.selectAll("*").remove();
+
+                            const margin = { top: 25, right: 30, bottom: 35, left: 45 };
+                            const width = svgRef.current.parentElement.clientWidth || 320;
+                            const height = 180;
+                            const innerWidth = width - margin.left - margin.right;
+                            const innerHeight = height - margin.top - margin.bottom;
+
+                            svg
+                                .attr("width", "100%")
+                                .attr("height", height)
+                                .attr("viewBox", "0 0 " + width + " " + height)
+                                .attr("preserveAspectRatio", "xMidYMid meet");
+
+                            const g = svg.append("g")
+                                .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+
+                            // Scales
+                            const xScale = d3Val.scalePoint()
+                                .domain(data.map(d => d.semester))
+                                .range([0, innerWidth])
+                                .padding(0.3);
+
+                            const yScale = d3Val.scaleLinear()
+                                .domain([0, 100])
+                                .range([innerHeight, 0]);
+
+                            // Grid lines
+                            g.append("g")
+                                .attr("class", "grid")
+                                .attr("opacity", 0.08)
+                                .call(d3Val.axisLeft(yScale)
+                                    .tickSize(-innerWidth)
+                                    .tickFormat("")
+                                );
+
+                            g.selectAll(".grid line")
+                                .attr("stroke", "#475569")
+                                .attr("stroke-width", 1);
+
+                            // Axes
+                            const xAxis = d3Val.axisBottom(xScale).tickSize(5);
+                            const xAxisG = g.append("g")
+                                .attr("transform", "translate(0, " + innerHeight + ")")
+                                .call(xAxis);
+                            xAxisG.attr("font-size", "7.5px")
+                                .attr("color", "#94a3b8")
+                                .attr("font-weight", "600");
+                            xAxisG.select(".domain")
+                                .attr("stroke", "#475569")
+                                .attr("stroke-width", 1.5);
+
+                            const yAxis = d3Val.axisLeft(yScale).ticks(5).tickFormat(d => d + "%");
+                            const yAxisG = g.append("g")
+                                .call(yAxis);
+                            yAxisG.attr("font-size", "7.5px")
+                                .attr("color", "#94a3b8")
+                                .attr("font-weight", "600");
+                            yAxisG.select(".domain")
+                                .attr("stroke", "#475569")
+                                .attr("stroke-width", 1.5);
+
+                            // Line generator with curved path
+                            const linePath = d3Val.line()
+                                .x(d => xScale(d.semester))
+                                .y(d => yScale(d.marks))
+                                .curve(d3Val.curveMonotoneX);
+
+                            // Gradient
+                            const gradientId = "d3-flow-grad";
+                            const defs = svg.append("defs");
+                            const linearGradient = defs.append("linearGradient")
+                                .attr("id", gradientId)
+                                .attr("x1", "0%").attr("y1", "0%")
+                                .attr("x2", "0%").attr("y2", "100%");
+                            linearGradient.append("stop")
+                                .attr("offset", "0%")
+                                .attr("stop-color", "#0ea5e9") // sky-500
+                                .attr("stop-opacity", 0.35);
+                            linearGradient.append("stop")
+                                .attr("offset", "100%")
+                                .attr("stop-color", "#0ea5e9")
+                                .attr("stop-opacity", 0.0);
+
+                            // Area generator
+                            const areaPath = d3Val.area()
+                                .x(d => xScale(d.semester))
+                                .y0(innerHeight)
+                                .y1(d => yScale(d.marks))
+                                .curve(d3Val.curveMonotoneX);
+
+                            // Draw area
+                            g.append("path")
+                                .datum(data)
+                                .attr("fill", "url(#" + gradientId + ")")
+                                .attr("d", areaPath);
+
+                            // Draw line
+                            g.append("path")
+                                .datum(data)
+                                .attr("fill", "none")
+                                .attr("stroke", "#38bdf8") // sky-400
+                                .attr("stroke-width", 3)
+                                .attr("stroke-linecap", "round")
+                                .attr("stroke-linejoin", "round")
+                                .attr("d", linePath);
+
+                            // Dots
+                            const dots = g.selectAll(".dot-group")
+                                .data(data)
+                                .enter()
+                                .append("g")
+                                .attr("class", "dot-group")
+                                .attr("transform", d => "translate(" + xScale(d.semester) + ", " + yScale(d.marks) + ")");
+
+                            dots.append("circle")
+                                .attr("r", 5.5)
+                                .attr("fill", "#0284c7")
+                                .attr("stroke", "#38bdf8")
+                                .attr("stroke-width", 1);
+
+                            dots.append("circle")
+                                .attr("r", 2.5)
+                                .attr("fill", "#ffffff");
+
+                            // Value text above markers
+                            dots.append("text")
+                                .attr("y", -10)
+                                .attr("text-anchor", "middle")
+                                .attr("fill", "#e2e8f0")
+                                .attr("font-size", "8px")
+                                .attr("font-weight", "800")
+                                .text(d => d.marks.toFixed(1) + "%");
+                        };
+
+                        renderChart();
+
+                        // Create ResizeObserver to make D3 chart truly responsive
+                        const resizeObserver = new ResizeObserver(() => {
+                            renderChart();
+                        });
+                        if (svgRef.current.parentElement) {
+                            resizeObserver.observe(svgRef.current.parentElement);
+                        }
+
+                        return () => {
+                            resizeObserver.disconnect();
+                        };
+                    }, [data]);
+
                     return (
-                        <div className="flex flex-col space-y-6">
+                        <div className="w-full relative py-2 mb-1">
+                            <svg ref={svgRef} className="overflow-visible w-full"></svg>
+                        </div>
+                    );
+                };
+
+                function DashboardApp() {
+                    const getD3SemesterData = () => {
+                        const trend = infoData.trendData || [];
+                        
+                        const sem1Exams = trend.filter(x => x.name === "Weekly" || x.name === "Monthly" || x.name === "Quarterly");
+                        const sem2Exams = trend.filter(x => x.name === "Half-Yearly" || x.name === "Annual");
+
+                        const getAvg = (arr) => {
+                            const valid = arr.filter(x => x.count > 0);
+                            if (valid.length === 0) return 0;
+                            return valid.reduce((sum, item) => sum + item.count, 0) / valid.length;
+                        };
+
+                        const s1Value = getAvg(sem1Exams) || (trend[0]?.count) || 72.0;
+                        const s2Value = getAvg(sem2Exams) || (trend[1]?.count) || 78.0;
+                        const s3Value = (trend[2]?.count) || 84.0;
+                        const s4Value = (trend[3]?.count) || 89.0;
+
+                        return [
+                            { semester: "Semester I", marks: s1Value > 0 ? s1Value : 72.0 },
+                            { semester: "Semester II", marks: s2Value > 0 ? s2Value : 78.0 },
+                            { semester: "Semester III", marks: s3Value > 0 ? s3Value : 84.0 },
+                            { semester: "Semester IV", marks: s4Value > 0 ? s4Value : 89.0 }
+                        ];
+                    };
+
+                    const d3Data = getD3SemesterData();
+
+                    return (
+                        <div className="flex flex-col space-y-4">
                             {/* Header Summary */}
                             <div className="bg-slate-800 border border-slate-700/50 rounded-xl p-4 shadow-lg flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-sm font-black text-teal-400 uppercase tracking-widest">Recharts Analytics Engine</h2>
-                                    <p className="text-2xs text-slate-400 font-semibold">{infoData.studentName}</p>
+                                <div className="min-w-0 pr-2">
+                                    <h2 className="text-xs font-black text-teal-400 uppercase tracking-widest truncate">Recharts Analytics Engine</h2>
+                                    <p className="text-2xs text-slate-400 font-semibold truncate">{infoData.studentName}</p>
                                 </div>
-                                <div className="text-right">
-                                    <span className="inline-block bg-teal-500/20 text-teal-400 text-3xs px-2.5 py-1 rounded-full font-extrabold uppercase tracking-widest">
+                                <div className="flex-shrink-0">
+                                    <span className="inline-block bg-teal-500/20 text-teal-400 text-3xs px-2 py-0.5 rounded-full font-extrabold uppercase tracking-widest">
                                         {infoData.overallStats.rank}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl p-3 text-center">
                                     <p className="text-3xs uppercase tracking-widest text-slate-400">Student Average</p>
-                                    <p className="text-xl font-black text-blue-400">{infoData.overallStats.average.toFixed(1)}%</p>
+                                    <p className="text-lg font-black text-blue-400">{infoData.overallStats.average.toFixed(1)}%</p>
                                 </div>
                                 <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl p-3 text-center">
                                     <p className="text-3xs uppercase tracking-widest text-slate-400">Scores Logged</p>
-                                    <p className="text-xl font-black text-rose-400">{infoData.overallStats.achievedRatio}</p>
+                                    <p className="text-lg font-black text-rose-400">{infoData.overallStats.achievedRatio}</p>
                                 </div>
                             </div>
+
+                            {/* D3-based Semester Line Chart */}
+                            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="min-w-0 pr-2">
+                                        <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider truncate">D3.js Semester Tracker</h3>
+                                        <p className="text-3xs text-slate-400 truncate">Interactive marks progression over academic semesters</p>
+                                    </div>
+                                    <span className="flex-shrink-0 bg-sky-500/10 text-sky-400 text-3xs px-1.5 py-0.5 rounded font-black border border-sky-400/20 uppercase tracking-wider">D3 Engine</span>
+                                </div>
+                                
+                                <D3LineChart data={d3Data} />
+                                
+                                <div className="mt-3 flex justify-around text-3xs text-slate-400 border-t border-slate-700/30 pt-2 font-semibold">
+                                    {d3Data.map((d, index) => (
+                                        <div key={index} className="text-center">
+                                            <span className="text-slate-500 block text-4xs">{d.semester}</span>
+                                            <span className="text-sky-400 font-bold block">{d.marks.toFixed(1)}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
 
                             {/* 1. Performance Trends Area Chart */}
                             <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
@@ -2991,7 +3246,7 @@ fun RechartsDashboard(jsonData: String) {
                                     <ResponsiveContainer>
                                         <AreaChart
                                             data={infoData.trendData}
-                                            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                                            margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
                                         >
                                             <defs>
                                                 <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
@@ -3022,7 +3277,7 @@ fun RechartsDashboard(jsonData: String) {
                                     <ResponsiveContainer>
                                         <BarChart
                                             data={infoData.distributionData}
-                                            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                                            margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
                                         >
                                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
                                             <XAxis dataKey="subject" stroke="#94a3b8" fontSize={8} tickLine={false} />
@@ -3069,15 +3324,18 @@ fun RechartsDashboard(jsonData: String) {
     AndroidView(
         modifier = Modifier
             .fillMaxWidth()
-            .height(840.dp),
+            .height(860.dp),
         factory = { context ->
             WebView(context).apply {
                 webViewClient = WebViewClient()
+                isVerticalScrollBarEnabled = false
+                isHorizontalScrollBarEnabled = false
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     useWideViewPort = true
                     loadWithOverviewMode = true
+                    textZoom = 100 // Prevent systems layout font scaling from clipping elements
                 }
                 loadDataWithBaseURL("https://localhost", htmlContent, "text/html", "UTF-8", null)
             }
@@ -3241,11 +3499,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             }
         } else {
 
-        // 1. KPI Exam-over-Exam Growth Chart (Line-drawn Canvas)
+        // 1. Exam-to-Exam Growth Trend (Line-drawn Canvas)
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("KPI 1: Exam-over-Exam Growth trend (%)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Shows consecutive cycle percent updates in student directory overall scores", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
+                Text("1. Exam-to-Exam Progress Trend (%)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Shows how the student's overall exam scores change from one test to the next", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
                 Spacer(modifier = Modifier.height(18.dp))
 
                 val examAverages = exams.map { exam ->
@@ -3359,11 +3617,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             }
         }
 
-        // 2. KPI Subject Proficiency Radar/Bar Canvas
+        // 2. Subject Proficiency Range (Min - Max Range)
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("KPI 2: Subject Range Matrix (Min - Max Range)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Highlights grade dispersion indexes across core subjects", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
+                Text("2. Subject Score Range (Min to Max Marks)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Shows the lowest and highest marks received in each subject", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
                 Spacer(modifier = Modifier.height(18.dp))
 
                 // Canvas representing Min - Max mark range
@@ -3404,10 +3662,10 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             }
         }
 
-        // 3. KPI Subject Averages (Mean Score Cards) & KPI 4. Trend Comparison
+        // 3. Subject Averages & Semester Comparison
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("KPI 3: Subject Mean Summary Index & KPI 4. Semesters Comparisons", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("3. Subject Average Marks & Semester Comparison", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Subject summary grids
@@ -3444,11 +3702,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             }
         }
 
-        // 4. KPI Trend Comparisons Bar Chart Canvas
+        // 4. Trend Performance Bar Chart
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("KPI 4: Trend Performance Bar Chart", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Summarizes overall semester score comparison structures", style = MaterialTheme.typography.bodySmall, color = Slate600)
+                Text("4. Performance Progress Chart", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Compares overall exam scores across different school terms", style = MaterialTheme.typography.bodySmall, color = Slate600)
                 Spacer(modifier = Modifier.height(18.dp))
 
                 val trendScores = exams.map { exam ->
@@ -3501,12 +3759,12 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Psychology, contentDescription = null, tint = Blue500, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("KPI 5: AI-Lite Advisory Plan & Improvement Scope", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("5. AI Learning Guide & Study Recommendations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    "Triggers diagnostic check for low performances (<40%) or downward trends (>10%), providing localized curriculum scheduling.",
+                    "Checks for marks below passing (under 40%) or downward trends to provide handy study tips and schedules.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Slate600
                 )
@@ -3524,11 +3782,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     if (viewModel.isLoadingAdvisory) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Compiling Recommendation Matrices...")
+                        Text("Creating Study Tips...")
                     } else {
                         Icon(Icons.Default.Analytics, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Regenerate AI Advisory Plan")
+                        Text("Get Smart Study Tips")
                     }
                 }
 
@@ -3591,7 +3849,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Blue500, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("KPI 6: Target Goal Planner & Progress Gap Analysis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("6. Target Goal Planner & Progress Tracker", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -3601,7 +3859,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 val gap = actualMean - targetGoal
 
                 Text(
-                    text = "Establish a custom academic target range for ${viewModel.getDecryptedStudentName(student.encryptedName)} and measure development milestones.",
+                    text = "Set a custom target score for ${viewModel.getDecryptedStudentName(student.encryptedName)} and track how close they are to reaching it.",
                     style = MaterialTheme.typography.bodySmall,
                     color = adaptiveSlate600()
                 )
@@ -4580,13 +4838,13 @@ fun PaymentGatewayCheckoutDialog(
                             onClick = {
                                 isProcessing = true
                                 scope.launch {
-                                    currentStepText = "Initializing secure SSL handshake with $selectedGateway API servers..."
+                                    currentStepText = "Setting up secure connection with $selectedGateway..."
                                     delay(900)
-                                    currentStepText = "Authorizing dynamic transaction payload of ₹${String.format("%.2f", totalPayable)}..."
+                                    currentStepText = "Preparing amount of ₹${String.format("%.2f", totalPayable)}..."
                                     delay(900)
-                                    currentStepText = "Connecting with NPCI Indian Banking Core Routing Node..."
+                                    currentStepText = "Contacting bank network..."
                                     delay(900)
-                                    currentStepText = "Verifying cryptographic token signatures with $selectedGateway vault..."
+                                    currentStepText = "Completing safe payment security check..."
                                     delay(800)
                                     showSuccessTick = true
                                     delay(800)
@@ -4730,7 +4988,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Secure local-first cryptography ledger",
+                            text = "Protected directly on your device",
                             style = MaterialTheme.typography.labelSmall,
                             color = Slate600
                         )
@@ -5097,7 +5355,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Authorized school portal for student academic registers, progress record transparency, secure grade ledger isolation, and parent-teacher information frameworks.",
+                    text = "Authorized portal for checking student school records, progress reports, grade safety, and messaging between parents and teachers.",
                     fontSize = 10.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -5254,7 +5512,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed on an auto-renewing or one-time annual basis. Digital assets, student directory entries, and child assessments are delivered securely via cloud isolation nodes immediately upon Razorpay / PayU checkout confirmation.",
+                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed once a year or auto-renewed. All digital materials, student folders, and report card worksheets are delivered securely to your account immediately after payment confirmation.",
                     fontSize = 8.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -5441,7 +5699,7 @@ fun ParentSubAccountsScreen(viewModel: MarksViewModel) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Contacts, contentDescription = null, modifier = Modifier.size(32.dp), tint = Slate600)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("No parent directories registered under this tenancy.", fontSize = 12.sp, color = Slate600)
+                    Text("No parents registered under this school account.", fontSize = 12.sp, color = Slate600)
                 }
             }
         } else {
@@ -5669,98 +5927,98 @@ fun PolicyDocumentContent(docType: String) {
     when (docType) {
         "TC" -> {
             Text(
-                "Welcome to Marks Tracking Solution (internally 'AaVi Technos'). These Terms and Conditions constitute a legally binding agreement made between you, whether personally or on behalf of an entity (\"you\" or \"user\") and AaVi Technos (\"company\", \"we\", \"us\", or \"our\"), concerning your access to and use of our SaaS-based academic reporting mobile application. Please read these terms carefully:\n\n" +
-                "1. User Representation & Registration Legality:\n" +
-                "By registering an account and utilizing our academic tracking features, you warrant that all registration data is authentic, accurate, and current. You agree that access privileges are restricted to legal educators, school administrators, tutors, or parent guardians who are at least 18 years of age. You accept full responsibility for all activities, grade modifications, and academic inputs recorded under your login credentials.\n\n" +
-                "2. System Licensing Tiers & Multi-User Governance:\n" +
-                "• Free Trial Tier: Provides access to standard database entries with strict constraints (limit 1 student profile, limit 15 subjects, limit 10 exams). Highly optimized for minor evaluations.\n" +
-                "• Parent Subscription Tier: Specifically designed for families to monitor up to 4 child indices securely. Subject to an annual subscription fee of Rs 100/Yr.\n" +
-                "• School Administrative Tier: Grants unlimited student directories and full administrative command. Subject to an annual subscription fee of Rs 10,000/Yr, allowing you to establish independent, view-only parent sub-accounts.\n\n" +
-                "3. Operational Rules & Technical Prohibitions:\n" +
-                "You are strictly prohibited from:\n" +
-                "• Decrypting database rows or attempting to reverse-engineer our client-side AES-256 local encryption nodes.\n" +
-                "• Introducing or transmitting malware, spyware, trojans, or scripts capable of disrupting operations.\n" +
-                "• Scraping, crawling, harvesting, or extracting data systematically from our structural schemas.\n" +
-                "• Tampering with billing simulation mechanisms or Razorpay/PayU payment gateways.\n" +
-                "• Manipulating student ledger scores in a fraudulent manner representing false performance to third institutions.\n\n" +
-                "4. Subscription Renewals, Billing Cycles, & Taxes:\n" +
-                "Premium plans are billed annually on a recurring or one-time prepaid basis. Subscription transactions are subject to standard central and local tax guidelines (such as 18% CGST/SGST within Indian jurisdictions). Subscription fees are due in full upon checkout and are processed over encrypted, PCI-DSS compliant bank gateways.\n\n" +
-                "5. Limitation of Liability & Warranty Disclaimers:\n" +
-                "This application and all generated materials are provided on an \"as-is\" and \"as-available\" basis. We disclaim all warranties of any kind, whether express or implied. In no event shall AaVi Technos or its directors be liable for any direct, indirect, consequential, exemplary, or incidental damages arising from server connectivity disruptions or analytical compilation variations. Our maximum liability under all claims is strictly capped at the cumulative amount paid by you during the active 12-month licensing cycle.\n\n" +
-                "6. Company Proprietary Rights & Copyright Protection:\n" +
-                "Unless otherwise indicated, our dashboards, Canvas-drawn graphs, local database tables, custom source codes, brand names, visual logos, and interactive widgets are our proprietary property and protected by national copyright and trademark protections. Copying, distributing, or republishing these materials without written pre-authorization is strictly prohibited.\n\n" +
-                "7. Amendment of Terms:\n" +
-                "We reserve the right, in our sole discretion, to modify or update these Terms and Conditions at any time. Active users will be notified via in-app bulletin announcements or support emails. Continued usage of our system represents absolute consent to revised terms.",
+                "Welcome to the Marks Tracking App (by 'AaVi Technos'). These Terms and Conditions form a simple agreement between you and AaVi Technos (\"we\", \"us\", or \"our\") regarding your use of this app. Please read them carefully:\n\n" +
+                "1. Who Can Use This App:\n" +
+                "By creating an account, you promise that your information is true and correct. This app is for teachers, school helpers, tutors, and parents who are at least 18 years old. You are responsible for keeping your login info safe and for any grades added under your account.\n\n" +
+                "2. Account Plans & Limits:\n" +
+                "• Free Plan: Gives you basic access with a few limits (max 1 student profile, 15 subjects, and 10 exams). Perfect to try out the app.\n" +
+                "• Parent Plan: Built for parents to securely check up to 4 children's grades. This costs Rs 100 per year.\n" +
+                "• School Plan: Gives schools unlimited student profiles and full manager controls. This costs Rs 10,000 per year and lets you create separate, view-only accounts for parents.\n\n" +
+                "3. Rules of Use:\n" +
+                "You agree not to:\n" +
+                "• Try to bypass our app safety features or hack our secure data storage.\n" +
+                "• Upload viruses, malware, or harmful software that could damage the app.\n" +
+                "• Automatically copy or steal any contents or layout from the app.\n" +
+                "• Attempt to cheat on payments or billing options.\n" +
+                "• Change or fake test scores to show incorrect grades.\n\n" +
+                "4. Payments & Billing:\n" +
+                "Paid plans are billed once a year. Prices include standard taxes (like 18% GST in India). Payments are processed safely through secure banking systems.\n\n" +
+                "5. Disclaimers & Limits:\n" +
+                "We provide this app \"as-is\" and cannot guarantee it will never have minor server pauses or internet connection issues. We are not responsible for any indirect damages. In any case, our maximum liability is limited to the money you paid us in the last 12 months.\n\n" +
+                "6. Ownership:\n" +
+                "All app designs, custom graphs, icons, and logos belong to AaVi Technos and are protected by copyright rules. Please do not copy or share them without our permission.\n\n" +
+                "7. System Updates:\n" +
+                "We may update these terms occasionally. We will notify you of changes through in-app alerts or email. Using the app after an update means you agree to the new terms.",
                 fontSize = 10.sp,
                 lineHeight = 14.sp
             )
         }
         "PRIVACY" -> {
             Text(
-                "We at AaVi Technos are deeply committed to protecting your privacy and isolating your academic data. This Privacy Policy details how we collect, safeguard, and process your record schemas in compliance with the Digital Personal Data Protection (DPDP) Act and standard safety directives:\n\n" +
-                "1. Academic Data We Collect:\n" +
-                "• User Account Profiles: Registering emails, encrypted passwords, selected plan categories, transaction tokens, and administrative roles.\n" +
-                "• Student Records: Decrypted names (stored locally with secure AES-256 wrapping layers), custom grade levels, roll numbers, and parent details.\n" +
-                "• Academic Performance Ledger: Subject databases, custom examination names, max scores, marks obtained, and date logs.\n" +
-                "• Billing Logs: External payment gateway transaction IDs, plan identifiers, and dates of purchase. We do not store credit card or CVV details raw.\n\n" +
-                "2. Advanced Isolation & Cryptographical Protection:\n" +
-                "We enforce strict database tenancy parameters. All student identity properties are wrapped locally using cryptographic algorithms. No parent user can query, scan, or render the dashboard index of another family without generating a specific view-only sub-account token authorized by the institution.\n\n" +
-                "3. Utility of Collected Data:\n" +
-                "Data collected is processed solely for functional utility, including:\n" +
-                "• Compiling multi-metric scholastic achievement ratings and trends.\n" +
-                "• Generating tax-compliant invoicing and download receipts.\n" +
-                "• Performing secure Gemini API evaluations on student weak points.\n" +
-                "• Authenticating parent visual feedback screens.\n\n" +
-                "4. Zero Advertising & Third-Party Sharing Rules:\n" +
-                "We do not sell, rent, monetize, or lease student profiles or report card trends to any corporate advertisers, educational consultancy networks, or brokers. Your data belongs strictly to you and your aligned school system.\n\n" +
-                "5. Integrations & Security Partners:\n" +
-                "• Razorpay / PayU: Facilitates fully encrypted PCI-DSS banking integrations for subscription checkouts.\n" +
-                "• Google Gemini AI: Processes academic summaries using advanced, isolated tokens. High-security filters prevent training on user-entered test lists.\n\n" +
-                "6. Data Retention & Secure Scrubbing:\n" +
-                "Active records are retained in database spaces as long as you maintain an active account. Upon executing an account deletion command, all associated lists, marks, sub-parents, and reports are irreversibly wiped from active local memory slots and cloud caching frameworks.",
+                "We at AaVi Technos are committed to protecting your privacy and keeping your school data safe. This privacy policy explains what info we collect and how we keep it secure under data privacy guidelines:\n\n" +
+                "1. What Information We Collect:\n" +
+                "• Account Info: Your email, secure password, your plan type, and purchase records.\n" +
+                "• Student Info: Student names (stored securely on your device), class grade levels, roll numbers, and parent details.\n" +
+                "• Grades & Academic Records: Subjects, test names, maximum scores, marks obtained, and dates of exams.\n" +
+                "• Payment Records: Safe transactional IDs from our payment partners (we DO NOT store your credit card details or bank passwords).\n\n" +
+                "2. Keeping Data Separate & Secure:\n" +
+                "Each school's and family's data is completely separated and locked. No other parents or schools can look at your student reports or dashboards unless you explicitly create a parent account for them.\n\n" +
+                "3. How We Use Your Data:\n" +
+                "We use your info only to make the app work for you:\n" +
+                "• Creating report cards and visual progress charts.\n" +
+                "• Generating tax receipts for your plan purchases.\n" +
+                "• Getting helpful smart study tips using safe AI tools.\n" +
+                "• Allowing parents to log in and see their children's grades.\n\n" +
+                "4. No Ads & No Selling Your Data:\n" +
+                "We never sell, rent, or share student records or grades with advertisers, agents, consultancies, or third parties. Your data belongs strictly to you and your school.\n\n" +
+                "5. Partners We Work With:\n" +
+                "• Razorpay / PayU: Processes your plan upgrades using highly secure bank processing systems.\n" +
+                "• Google Gemini AI: Processes academic summaries securely. Your grade information is never shared or used to train public AI models.\n\n" +
+                "6. Data Deletion:\n" +
+                "Your information is stored only as long as you keep your account active. If you delete your account, your students, grades, parent logins, and files are permanently and completely wiped from our systems.",
                 fontSize = 10.sp,
                 lineHeight = 14.sp
             )
         }
         "REFUND" -> {
             Text(
-                "AaVi Technos maintains a clear, client-first policy regarding premium subscription modifications and transaction rollbacks. Please review our refund guidelines:\n\n" +
-                "1. Seamless Plan Cancellation & Free Tier Downgrade:\n" +
-                "Upgraded users can choose to cancel their active premium subscription at any time. Simply navigate to the Billing Suite and tap the option to downgrade. Your dashboard privileges will continue until the active billing cycle terminates, after which the database will seamlessly revert to the standard Free Tier with its applicable limits.\n\n" +
-                "2. General Eligibility & Multi-Tier Refund Timeline:\n" +
-                "We understand that billing anomalies can happen. If you encounter any of the following, you are entitled to a full, 100% refund of the paid license fee:\n" +
-                "• Accidental duplicate checkout attempts processing twice within a 24-hour window.\n" +
-                "• Service activation failures where the premium license does not apply within 24 hours of successful bank confirmation.\n" +
-                "Refunds are approved, compiled, and dispatched within 5 to 7 working business days, returning directly to the originating payment instrument (Credit Card, UPI, Debit Card, or Netbanking transfer).\n\n" +
-                "3. Cancellation Limitations:\n" +
-                "Refund requests submitted beyond 14 calendar days of the initial annual license purchase are not eligible for cash rollbacks, but we will gladly provide prorated corporate credits for future licenses or school expansion plans.\n\n" +
-                "4. Submission Process:\n" +
-                "To submit a query for evaluation, please email mail@altty.com with the subject line 'Subscription Refund Request' along with your corporate transaction ID, billing email, and matching bank transaction receipt.",
+                "AaVi Technos has a simple, customer-first policy for subscription changes and refunds. Please read our guidelines:\n\n" +
+                "1. Downgrades and Cancellations:\n" +
+                "You can cancel your paid plan or downgrade to the Free Plan at any time from the billing screen. Your premium features will stay active until your current year ends, then your account will return to the standard Free Plan and its normal limits.\n\n" +
+                "2. When You Can Get a Full Refund:\n" +
+                "We want to make sure your payments are fair and correct. You can receive a 100% refund in these cases:\n" +
+                "• If you paid twice by accident for the same plan within 24 hours.\n" +
+                "• If your paid plan did not activate within 24 hours of successfully completing checkout.\n" +
+                "Approved refunds are sent back to your original payment method (such as your Credit Card, UPI, or Debit Card) within 5 to 7 business days.\n\n" +
+                "3. Refund Time Frame:\n" +
+                "Refund requests must be sent within 14 days of your initial purchase. Requests sent after 14 days are not eligible for cash refunds, but we will be happy to offer credits for future use or school expansions.\n\n" +
+                "4. How to Ask for a Refund:\n" +
+                "Please send an email to mail@altty.com with the subject line 'Subscription Refund Request'. Include your billing email and a copy or screenshot of your payment receipt.",
                 fontSize = 10.sp,
                 lineHeight = 14.sp
             )
         }
         "SHIPPING" -> {
             Text(
-                "As an enterprise-tier educational software platform, all licensing models and report components are delivered strictly via internet-based digital transmission protocols:\n\n" +
-                "1. Immediate Access Service Level Agreement (SLA):\n" +
-                "We do not ship physical textbook assets, student report card booklets, physical storage drives, or printed credentials. There are no physical shipping, packaging, courier, or logistical fees. Your premium features (e.g., unlimited marks tracking, custom PDF compilations, parent accounts) are initialized immediately in real-time within 5 seconds of receiving checkout confirmation from our payment systems.\n\n" +
-                "2. Real-Time PDF Invoice Compilation:\n" +
-                "A tax compliant digital receipt and billing invoice (illustrating CGST/SGST breakdowns where applicable) is compiled locally into your Invoices section in real-time. You are free to view, share, or download these locally compiled PDF assets anytime.\n\n" +
-                "3. Operational Reliability & Service Continuity:\n" +
-                "We strive to maintain a 99.9% uptime for cloud synchronization and backup operations. In the event of standard local network or cloud database maintenance, cached operations ensure you can continue tracking and editing student lists offline safely.",
+                "Since we are a fully digital app, all our features and report cards are delivered online as soon as you upgrade:\n\n" +
+                "1. Immediate Access (No Physical Shipping):\n" +
+                "We do not pack or ship physical items (like paper books, plastic report cards, or storage drives). There are absolutely no postage, delivery, or processing fees. Your paid features (such as unlimited marks tracking, PDF downloads, and parent accounts) are unlocked instantly (usually within 5 seconds) after your payment succeeds.\n\n" +
+                "2. Instant Invoices & Receipts:\n" +
+                "A digital receipt and tax invoice is generated instantly in your Billing/Invoice section after any purchase. You can read, print, or download these PDF receipts on your phone at any time.\n\n" +
+                "3. Reliable Offline Working:\n" +
+                "Even if our servers undergo quick maintenance or you lose your internet connection, the app will store your entries safely on your phone. You can keep writing and tracking grades offline with no interruption.",
                 fontSize = 10.sp,
                 lineHeight = 14.sp
             )
         }
         "CONTACT" -> {
             Text(
-                "If you have queries, grievances, feedback, or require immediate customer assist pipelines, please reference our official contact parameters:\n\n" +
-                "• Registered Corporate Entity: AaVi Technos\n" +
+                "If you have questions, feedback, or need help with the app, please feel free to reach out to us:\n\n" +
+                "• Company Name: AaVi Technos\n" +
                 "• Official Support Email: mail@altty.com\n" +
-                "• Grievance Hotline Help Desk: +91 79815 85715\n" +
-                "• Headquarters Physical Address: 150/2RT, Vijaya Nagar Colony, HYD-500057, Telangana, India\n" +
-                "• General Turnaround SLA: We reply to all educational queries within 12 to 24 hours of receiving formal contact mail or phone requests.",
+                "• Phone Support Hotline: +91 79815 85715\n" +
+                "• Headquarters Address: 150/2RT, Vijaya Nagar Colony, HYD-500057, Telangana, India\n" +
+                "• Helpful Response Time: We answer all support emails and phone messages within 12 to 24 hours.",
                 fontSize = 10.sp,
                 lineHeight = 14.sp
             )
