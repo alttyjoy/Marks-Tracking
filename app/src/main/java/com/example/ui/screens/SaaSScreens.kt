@@ -79,6 +79,7 @@ enum class AppScreen {
     SETUP,
     LOGIN,
     DATA_ENTRY_GRID,
+    STUDENT_PROFILE,
     ANALYTICS,
     BILLING_SUITE,
     PARENT_SUB_ACCOUNTS
@@ -319,16 +320,390 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
                         UserProfileDialog(
                             user = currentUser,
                             viewModel = viewModel,
-                            onDismiss = { showTopProfileDialog = false }
+                            onDismiss = { showTopProfileDialog = false },
+                            onStudentSelected = {
+                                showTopProfileDialog = false
+                                activeStateScreen = AppScreen.STUDENT_PROFILE
+                            }
                         )
                     }
 
                     when (activeStateScreen) {
-                        AppScreen.DATA_ENTRY_GRID -> DataEntryGridScreen(viewModel)
+                        AppScreen.DATA_ENTRY_GRID -> DataEntryGridScreen(
+                            viewModel = viewModel,
+                            onNavigateToProfile = { activeStateScreen = AppScreen.STUDENT_PROFILE }
+                        )
+                        AppScreen.STUDENT_PROFILE -> StudentProfileScreen(
+                            viewModel = viewModel,
+                            onBackToGrid = { activeStateScreen = AppScreen.DATA_ENTRY_GRID }
+                        )
                         AppScreen.ANALYTICS -> AdvancedAnalyticsScreen(viewModel)
                         AppScreen.BILLING_SUITE -> BillingSuiteScreen(viewModel)
                         AppScreen.PARENT_SUB_ACCOUNTS -> ParentSubAccountsScreen(viewModel)
                         else -> DataEntryGridScreen(viewModel)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- Dynamic List of Children or Students for Profiles ---
+@Composable
+fun ProfileStudentListBlock(
+    user: com.example.data.model.UserAccount,
+    viewModel: MarksViewModel,
+    onStudentClick: ((com.example.data.model.Student) -> Unit)? = null
+) {
+    val students by viewModel.studentsList.collectAsState()
+    val allMarks by viewModel.allMarksList.collectAsState()
+    val isParent = user.role == "INDIVIDUAL_PARENT" || user.role == "VIEW_ONLY_PARENT" || user.planType == "INDIVIDUAL_PARENT_PLAN"
+    val isSchool = user.role == "SCHOOL_ADMIN" || user.role == "SUPER_ADMIN" || user.planType == "SCHOOL_PLAN"
+
+    if (isParent) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Groups,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Managed Children Portfolio (${students.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            if (students.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "No children profiles are linked yet. Add children under 'Parent Sub-Accounts' or complete their profiles to display student academic cards here.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp,
+                        color = adaptiveSlate600(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    students.forEach { student ->
+                        val decName = viewModel.getDecryptedStudentName(student.encryptedName)
+                        val studentMarks = allMarks.filter { it.studentId == student.id }
+                        val avg = if (studentMarks.isNotEmpty()) studentMarks.map { it.marksObtained }.average() else null
+
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (onStudentClick != null) Modifier.clickable { onStudentClick(student) }
+                                    else Modifier
+                                )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Face,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = decName,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "Roll: ${student.rollNo.ifBlank { "N/A" }} | Class: ${student.studentClass.ifBlank { "Unassigned" }}",
+                                            fontSize = 11.sp,
+                                            color = adaptiveSlate600()
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Average Badge
+                                if (avg != null) {
+                                    val badgeColor = when {
+                                        avg >= 75.0 -> Color(0xFF0D9488) // Teal
+                                        avg >= 50.0 -> Color(0xFF0284C7) // Sky
+                                        else -> Color(0xFFE11D48) // Rose
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .background(badgeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                            .border(1.dp, badgeColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "${String.format(Locale.US, "%.1f", avg)}% Avg",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = badgeColor
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "No Marks",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = adaptiveSlate600()
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else if (isSchool) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Enrolled Student Directory (${students.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            if (students.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "No students are currently registered in this school roster. Go to 'Excel Grid' tab to add, import, and manage student score sheets.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp,
+                        color = adaptiveSlate600(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                var searchQuery by remember { mutableStateOf("") }
+
+                // Always enable search bar for School, Admin/Super-Admin profiles
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search school roster...", fontSize = 11.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+
+                val filteredStudents = if (searchQuery.isBlank()) students else {
+                    students.filter {
+                        val decName = viewModel.getDecryptedStudentName(it.encryptedName)
+                        decName.contains(searchQuery, ignoreCase = true) ||
+                                it.rollNo.contains(searchQuery, ignoreCase = true) ||
+                                it.studentClass.contains(searchQuery, ignoreCase = true)
+                    }
+                }
+
+                // Scrollable container with restricted max height to prevent layout stretching
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 240.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+                        .padding(6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (filteredStudents.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No students match your query.", fontSize = 11.sp, color = adaptiveSlate600())
+                            }
+                        } else {
+                            filteredStudents.forEach { student ->
+                                val decName = viewModel.getDecryptedStudentName(student.encryptedName)
+                                val studentMarks = allMarks.filter { it.studentId == student.id }
+                                val avg = if (studentMarks.isNotEmpty()) studentMarks.map { it.marksObtained }.average() else null
+
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (onStudentClick != null) Modifier.clickable { onStudentClick(student) }
+                                            else Modifier
+                                        )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = decName,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = "Class: ${student.studentClass.ifBlank { "Unassigned" }} | Roll: ${student.rollNo.ifBlank { "N/A" }}",
+                                                    fontSize = 10.sp,
+                                                    color = adaptiveSlate600()
+                                                )
+                                                Text(
+                                                    text = "${studentMarks.size} exam marks in school database",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(6.dp))
+
+                                        // Average badge
+                                        if (avg != null) {
+                                            val badgeColor = when {
+                                                avg >= 75.0 -> Color(0xFF0D9488)
+                                                avg >= 50.0 -> Color(0xFF0284C7)
+                                                else -> Color(0xFFE11D48)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(badgeColor.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                                    .border(0.5.dp, badgeColor.copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${String.format(Locale.US, "%.1f", avg)}%",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = badgeColor
+                                                )
+                                            }
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Pending",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Normal,
+                                                    color = adaptiveSlate600()
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -341,7 +716,8 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
 fun UserProfileDialog(
     user: com.example.data.model.UserAccount,
     viewModel: MarksViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onStudentSelected: ((com.example.data.model.Student) -> Unit)? = null
 ) {
     var showPasswordForm by remember { mutableStateOf(false) }
     var newPassword by remember { mutableStateOf("") }
@@ -416,6 +792,15 @@ fun UserProfileDialog(
                         }
                     }
                 }
+
+                ProfileStudentListBlock(
+                    user = user,
+                    viewModel = viewModel,
+                    onStudentClick = { student ->
+                        viewModel.selectStudent(student)
+                        onStudentSelected?.invoke(student)
+                    }
+                )
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
@@ -577,6 +962,13 @@ fun BottomNavigationBar(
             icon = { Icon(Icons.Default.GridOn, contentDescription = "Data Grid") },
             label = { Text("Excel Grid") },
             modifier = Modifier.testTag("nav_item_grid")
+        )
+        NavigationBarItem(
+            selected = activeScreen == AppScreen.STUDENT_PROFILE,
+            onClick = { onNavigate(AppScreen.STUDENT_PROFILE) },
+            icon = { Icon(Icons.Default.ContactPage, contentDescription = "Student Profile") },
+            label = { Text("Profile Portfolio") },
+            modifier = Modifier.testTag("nav_item_profile")
         )
         NavigationBarItem(
             selected = activeScreen == AppScreen.ANALYTICS,
@@ -1816,7 +2208,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
 // --- 3. The Data Entry Grid (Excel-Style Table) ---
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DataEntryGridScreen(viewModel: MarksViewModel) {
+fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Unit = {}) {
     val students by viewModel.studentsList.collectAsState()
     val subjects by viewModel.subjectsList.collectAsState()
     val testTypes by viewModel.testTypesList.collectAsState()
@@ -1834,6 +2226,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
     var showConfigDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
     var adminSearchQuery by remember { mutableStateOf("") }
+    var papaParseWebViewReference by remember { mutableStateOf<android.webkit.WebView?>(null) }
 
     val context = LocalContext.current
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -1844,6 +2237,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                 context.contentResolver.openInputStream(it)?.use { inputStream ->
                     val text = inputStream.bufferedReader().use { reader -> reader.readText() }
                     csvText = text
+                    papaParseWebViewReference?.evaluateJavascript("window.loadExternalCsvText(${org.json.JSONObject.quote(text)});", null)
                     android.widget.Toast.makeText(context, "CSV file loaded successfully!", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -2417,6 +2811,23 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    FilledTonalButton(
+                        onClick = onNavigateToProfile,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier
+                            .height(36.dp)
+                            .testTag("on_navigate_to_profile_button")
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.ContactPage, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("View Profile", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
                     IconButton(
                         onClick = { viewModel.downloadStudentReportPdf(curStudent) },
                         modifier = Modifier.testTag("download_report_pdf_excel_button")
@@ -2616,6 +3027,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
 
         // Floating Dialog Bulk Import Sheet overlay
         if (showImportDialog) {
+            var activeImportTab by remember { mutableStateOf(0) }
             AlertDialog(
                 onDismissRequest = { showImportDialog = false },
                 title = { Text("CSV Bulk Import Sandbox", fontWeight = FontWeight.Bold) },
@@ -2628,88 +3040,118 @@ fun DataEntryGridScreen(viewModel: MarksViewModel) {
                     val fullSampleCsv = "$sampleHeaders\n$sampleRows"
                     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
-                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        Text("Option 1: Download or Copy Sample CSV Template", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
-                        
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp)
-                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        TabRow(
+                            selectedTabIndex = activeImportTab,
+                            containerColor = Color.Transparent,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text(
-                                    text = "Headers: $sampleHeaders",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = sampleRows,
-                                    fontSize = 9.sp,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    color = adaptiveSlate600(),
-                                    lineHeight = 12.sp
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        clipboardManager.setText(androidx.compose.ui.text.buildAnnotatedString { append(fullSampleCsv) })
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                                    modifier = Modifier.fillMaxWidth().height(36.dp),
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Copy CSV Template to Clipboard", fontSize = 10.sp, color = Color.White)
-                                }
+                            Tab(selected = activeImportTab == 0, onClick = { activeImportTab = 0 }) {
+                                Text("🔥 PapaParse Premium", modifier = Modifier.padding(vertical = 10.dp), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if (activeImportTab == 0) Teal400 else Color.Gray)
+                            }
+                            Tab(selected = activeImportTab == 1, onClick = { activeImportTab = 1 }) {
+                                Text("Plain-Text Loader", modifier = Modifier.padding(vertical = 10.dp), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if (activeImportTab == 1) Blue500 else Color.Gray)
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("Option 2: Upload a CSV file from storage", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
-                        
-                        Button(
-                            onClick = { filePickerLauncher.launch("*/*") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Blue600),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .testTag("upload_csv_from_storage_button")
-                        ) {
-                            Icon(Icons.Default.FileOpen, contentDescription = null, tint = Color.White)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Select CSV File from Storage", color = Color.White)
-                        }
+                        if (activeImportTab == 0) {
+                            PapaParseUploader(
+                                viewModel = viewModel,
+                                onWebViewCreated = { webView ->
+                                    papaParseWebViewReference = webView
+                                },
+                                onImportCompleted = {
+                                    showImportDialog = false
+                                    csvText = ""
+                                }
+                            )
+                        } else {
+                            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                Text("Option 1: Download or Copy Sample CSV Template", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
+                                
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(
+                                            text = "Headers: $sampleHeaders",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = sampleRows,
+                                            fontSize = 9.sp,
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                            color = adaptiveSlate600(),
+                                            lineHeight = 12.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Button(
+                                            onClick = {
+                                                clipboardManager.setText(androidx.compose.ui.text.buildAnnotatedString { append(fullSampleCsv) })
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                            modifier = Modifier.fillMaxWidth().height(36.dp),
+                                            contentPadding = PaddingValues(0.dp)
+                                        ) {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Copy CSV Template to Clipboard", fontSize = 10.sp, color = Color.White)
+                                        }
+                                    }
+                                }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Option 3: Paste values directly in CSV structures:", fontSize = 11.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        
-                        OutlinedTextField(
-                            value = csvText,
-                            onValueChange = { csvText = it },
-                            placeholder = { Text(fullSampleCsv) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(130.dp)
-                                .testTag("csv_paste_input")
-                        )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text("Option 2: Upload a CSV file from storage", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Blue500)
+                                
+                                Button(
+                                    onClick = { filePickerLauncher.launch("*/*") },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Blue600),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp)
+                                        .testTag("upload_csv_from_storage_button")
+                                ) {
+                                    Icon(Icons.Default.FileOpen, contentDescription = null, tint = Color.White)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Select CSV File from Storage", color = Color.White)
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text("Option 3: Paste values directly in CSV structures:", fontSize = 11.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                
+                                OutlinedTextField(
+                                    value = csvText,
+                                    onValueChange = { csvText = it },
+                                    placeholder = { Text(fullSampleCsv) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(130.dp)
+                                        .testTag("csv_paste_input")
+                                )
+                            }
+                        }
                     }
                 },
                 confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.processBulkCsvImport(csvText)
-                            showImportDialog = false
-                            csvText = ""
-                        },
-                        modifier = Modifier.testTag("csv_submit_button")
-                    ) {
-                        Text("Process Import")
+                    if (activeImportTab == 1) {
+                        Button(
+                            onClick = {
+                                viewModel.processBulkCsvImport(csvText)
+                                showImportDialog = false
+                                csvText = ""
+                            },
+                            modifier = Modifier.testTag("csv_submit_button")
+                        ) {
+                            Text("Process Import")
+                        }
                     }
                 },
                 dismissButton = {
@@ -2976,6 +3418,9 @@ fun RechartsDashboard(jsonData: String) {
                     Area,
                     BarChart,
                     Bar,
+                    LineChart,
+                    Line,
+                    Legend,
                     XAxis,
                     YAxis,
                     CartesianGrid,
@@ -3267,6 +3712,46 @@ fun RechartsDashboard(jsonData: String) {
                                 </div>
                             </div>
 
+                            {/* Multi-Subject Trends Line Chart */}
+                            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
+                                <div className="mb-3">
+                                     <h3 className="text-xs font-black text-teal-400 uppercase tracking-wider">Subject-Wise Performance Trends</h3>
+                                     <p className="text-3xs text-slate-400">Exam-by-exam line chart tracking details across active subjects</p>
+                                </div>
+                                <div style={{ width: '100%', height: 210 }}>
+                                    <ResponsiveContainer>
+                                        <LineChart
+                                            data={infoData.trendData}
+                                            margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={8} tickLine={false} />
+                                            <YAxis stroke="#94a3b8" fontSize={8} domain={[0, 100]} tickCount={6} tickLine={false} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '8px', fontSize: '9px' }}
+                                                labelStyle={{ fontWeight: 'bold', color: '#38bdf8' }}
+                                            />
+                                            <Legend verticalAlign="top" height={36} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '8px', paddingBottom: '11px' }} />
+                                            {infoData.distributionData.map((dObj, idx) => {
+                                                const lineColors = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4", "#f43f5e", "#14b8a6", "#a855f7"];
+                                                const clr = lineColors[idx % lineColors.length];
+                                                return (
+                                                    <Line
+                                                        key={dObj.subject}
+                                                        type="monotone"
+                                                        dataKey={dObj.subject}
+                                                        stroke={clr}
+                                                        strokeWidth={2}
+                                                        dot={{ r: 3 }}
+                                                        activeDot={{ r: 5 }}
+                                                    />
+                                                 );
+                                            })}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
                             {/* 2. Distributions Bar Chart */}
                             <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
                                 <div className="mb-3">
@@ -3324,7 +3809,7 @@ fun RechartsDashboard(jsonData: String) {
     AndroidView(
         modifier = Modifier
             .fillMaxWidth()
-            .height(860.dp),
+            .height(1150.dp),
         factory = { context ->
             WebView(context).apply {
                 webViewClient = WebViewClient()
@@ -3344,6 +3829,977 @@ fun RechartsDashboard(jsonData: String) {
             webView.loadDataWithBaseURL("https://localhost", htmlContent, "text/html", "UTF-8", null)
         }
     )
+}
+
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebViewCreated: (android.webkit.WebView) -> Unit, onImportCompleted: () -> Unit) {
+    val htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>PapaParse Studio</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+            <style>
+                body {
+                    background-color: #0f172a;
+                    color: #e2e8f0;
+                    font-family: ui-sans-serif, system-ui, sans-serif;
+                    margin: 0;
+                    padding: 8px;
+                }
+                ::-webkit-scrollbar {
+                    display: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="space-y-3">
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl shadow-md">
+                    <h3 class="text-xs font-black text-teal-400 uppercase tracking-widest mb-1">PapaParse CSV Parser Engine</h3>
+                    <p class="text-4xs text-slate-400 mb-3 leading-normal">Fully automated RFC-4180 parsing with validation & real-time visual grid preview mapping database assets.</p>
+                    
+                    <div class="space-y-2.5">
+                        <div class="flex gap-2">
+                            <button id="file-trigger" onclick="document.getElementById('csv-file').click()" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-black py-2 px-3 rounded-lg text-4xs uppercase tracking-wider transition duration-200 shadow">
+                                Choose CSV File
+                            </button>
+                            <input type="file" id="csv-file" accept=".csv" class="hidden" onchange="handleFile(this)" />
+                        </div>
+                        
+                        <div class="text-center text-5xs text-slate-500 font-black uppercase tracking-widest my-1">Or Paste CSV Raw Representation</div>
+                        
+                        <textarea id="csv-paste" placeholder="RollNo,StudentName,Subject,Weekly,Monthly,ParentEmail&#10;101,Aarav Sharma,Mathematics,85,90,aarav.parent@example.com" class="w-full h-20 bg-slate-900/90 border border-slate-700/60 rounded-lg p-2 text-4xs font-mono text-slate-300 focus:outline-none focus:border-teal-500"></textarea>
+                        
+                        <button onclick="parsePaste()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2 px-3 rounded-lg text-4xs uppercase tracking-wider transition duration-200 shadow">
+                            Analyze CSV Data
+                        </button>
+                    </div>
+                </div>
+
+                <div id="status-box" class="hidden border px-3 py-1.5 rounded-lg text-4xs font-bold leading-normal">
+                </div>
+
+                <div id="preview-card" class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl shadow-md hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-4xs font-black text-slate-300 uppercase tracking-widest">Parsed Records Preview</h4>
+                        <span id="record-count" class="text-5xs font-black text-teal-400 bg-teal-950/60 border border-teal-500/20 px-1.5 py-0.5 rounded-full">0 Records</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto max-h-36 border border-slate-700/40 rounded-lg">
+                        <table class="w-full text-left text-4xs text-slate-300 border-collapse">
+                            <thead class="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-700/60">
+                                <tr id="table-headers" class="text-3xs"></tr>
+                            </thead>
+                            <tbody id="table-rows"></tbody>
+                        </table>
+                    </div>
+                    
+                    <button onclick="triggerBulkImport()" class="w-full mt-3 bg-teal-400 hover:bg-teal-500 text-slate-950 font-black py-2 px-3 rounded-lg text-4xs tracking-widest uppercase transition duration-200 shadow-md">
+                        Bulk Insert into Encrypted Database
+                    </button>
+                </div>
+            </div>
+
+            <script>
+                let parsedData = [];
+
+                function handleFile(input) {
+                    const file = input.files[0];
+                    if (!file) return;
+                    showStatus("Loading and analyzing " + file.name + "...", false);
+                    
+                    Papa.parse(file, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            processResults(results);
+                        },
+                        error: function(err) {
+                            showError("PapaParse File error: " + err.message);
+                        }
+                    });
+                }
+
+                function parsePaste() {
+                    const text = document.getElementById("csv-paste").value.trim();
+                    if (!text) {
+                        showError("Please paste some valid CSV content first.");
+                        return;
+                    }
+                    showStatus("Analyzing pasted text...", false);
+                    
+                    Papa.parse(text, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            processResults(results);
+                        },
+                        error: function(err) {
+                            showError("PapaParse Paste error: " + err.message);
+                        }
+                    });
+                }
+
+                window.loadExternalCsvText = function(text) {
+                    if (!text) return;
+                    document.getElementById("csv-paste").value = text;
+                    showStatus("Analyzing external storage file...", false);
+                    
+                    Papa.parse(text, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            processResults(results);
+                        },
+                        error: function(err) {
+                            showError("PapaParse external storage error: " + err.message);
+                        }
+                    });
+                };
+
+                function processResults(results) {
+                    parsedData = results.data;
+                    const meta = results.meta;
+                    const headers = meta.fields || [];
+
+                    if (parsedData.length === 0) {
+                        showError("No valid rows discovered in CSV.");
+                        return;
+                    }
+
+                    showStatus("Successfully analyzed " + parsedData.length + " source CSV records!", false);
+                    
+                    const headerRow = document.getElementById("table-headers");
+                    headerRow.innerHTML = "";
+                    headers.forEach(h => {
+                        headerRow.innerHTML += `<th class="p-1.5 font-bold whitespace-nowrap">${'$'}{h}</th>`;
+                    });
+
+                    const rowsBody = document.getElementById("table-rows");
+                    rowsBody.innerHTML = "";
+                    
+                    const previewLimit = Math.min(parsedData.length, 10);
+                    for (let i = 0; i < previewLimit; i++) {
+                        const row = parsedData[i];
+                        let rowHtml = `<tr class="border-b border-slate-800/60 hover:bg-slate-800/20 text-5xs">`;
+                        headers.forEach(h => {
+                            const cellVal = row[h] !== undefined ? row[h] : "";
+                            rowHtml += `<td class="p-1.5 truncate max-w-[80px]" title="${'$'}{cellVal}">${'$'}{cellVal}</td>`;
+                        });
+                        rowHtml += "</tr>";
+                        rowsBody.innerHTML += rowHtml;
+                    }
+
+                    document.getElementById("record-count").innerText = parsedData.length + " Rows";
+                    document.getElementById("preview-card").classList.remove("hidden");
+                }
+
+                function triggerBulkImport() {
+                    if (parsedData.length === 0) {
+                        showError("No parsed records available for bulk loading.");
+                        return;
+                    }
+                    showStatus("Sending " + parsedData.length + " pre-parsed records to secure database...", false);
+                    if (window.AndroidBridge) {
+                        window.AndroidBridge.importCsvJson(JSON.stringify(parsedData));
+                    } else {
+                        showError("Bridge unavailable. Run inside Android App.");
+                    }
+                }
+
+                function showStatus(msg, isError) {
+                    const box = document.getElementById("status-box");
+                    box.innerText = msg;
+                    box.classList.remove("hidden", "bg-red-950/40", "border-red-500/30", "text-red-400", "bg-emerald-950/40", "border-emerald-500/30", "text-emerald-400");
+                    
+                    if (isError) {
+                        box.classList.add("bg-red-950/40", "border-red-500/30", "text-red-400");
+                    } else {
+                        box.classList.add("bg-emerald-950/40", "border-emerald-500/30", "text-emerald-400");
+                    }
+                }
+
+                function showError(msg) {
+                    showStatus("⚠️ " + msg, true);
+                }
+            </script>
+        </body>
+        </html>
+    """.trimIndent()
+
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(490.dp),
+        factory = { context ->
+            android.webkit.WebView(context).apply {
+                webViewClient = android.webkit.WebViewClient()
+                isVerticalScrollBarEnabled = false
+                isHorizontalScrollBarEnabled = false
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    useWideViewPort = true
+                    loadWithOverviewMode = true
+                    textZoom = 100
+                }
+                addJavascriptInterface(object : Any() {
+                    @android.webkit.JavascriptInterface
+                    fun importCsvJson(jsonText: String) {
+                        viewModel.importParsedCsvJson(jsonText)
+                        onImportCompleted()
+                    }
+                    @android.webkit.JavascriptInterface
+                    fun logError(msg: String) {
+                        viewModel.actionMessage = "PapaParse error: ${'$'}msg"
+                    }
+                }, "AndroidBridge")
+                
+                onWebViewCreated(this)
+                loadDataWithBaseURL("https://localhost", htmlContent, "text/html", "UTF-8", null)
+            }
+        },
+        update = { webView ->
+            // Keep content updated
+        }
+    )
+}
+
+
+// --- 3.5. Student Profile Portfolio Screen ---
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun StudentProfileScreen(viewModel: MarksViewModel, onBackToGrid: () -> Unit) {
+    val students by viewModel.studentsList.collectAsState()
+    val subjects by viewModel.subjectsList.collectAsState()
+    val testTypes by viewModel.testTypesList.collectAsState()
+    val marks by viewModel.marksList.collectAsState()
+    val currentStudent = viewModel.selectedStudent
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        // Top Navigation Row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { onBackToGrid() }
+                    .padding(vertical = 4.dp)
+                    .testTag("profile_back_button")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "Back to Grid",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                "STUDENT PORTFOLIO",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = adaptiveSlate600().copy(alpha = 0.5f)
+            )
+        }
+
+        // Student Selector Banner list
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    "Select Active Student Profile:",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    students.forEach { std ->
+                        val decName = viewModel.getDecryptedStudentName(std.encryptedName)
+                        val isSelected = currentStudent?.id == std.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.selectStudent(std) },
+                            label = { Text(decName) },
+                            leadingIcon = if (isSelected) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null,
+                            modifier = Modifier.testTag("profile_student_chip_${std.id}")
+                        )
+                    }
+                }
+            }
+        }
+
+        if (currentStudent == null) {
+            // Elegant empty State
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Contacts,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp),
+                        tint = adaptiveSlate600().copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "No Student Profile Active",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Please select a student from the chips above to aggregate and analyze their marks history, view summarized performance statistics, and generate study strategies.",
+                        fontSize = 12.sp,
+                        color = adaptiveSlate600(),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        } else {
+            val decStudentName = viewModel.getDecryptedStudentName(currentStudent.encryptedName)
+
+            // High-Contrast Header Card (Visual Identity & Identity Details)
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Accent Initial Circle
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = decStudentName.take(1).uppercase(Locale.getDefault()),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = decStudentName,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    "Roll No: ${currentStudent.rollNo}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                            if (currentStudent.studentClass.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        "Class: ${currentStudent.studentClass}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { viewModel.downloadStudentReportPdf(currentStudent) },
+                        modifier = Modifier.testTag("profile_pdf_download_button_kpi")
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Download Marks PDF",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            }
+
+            // Calculate aggregated metrics
+            val subjectAverages = remember(marks, subjects) {
+                if (marks.isEmpty() || subjects.isEmpty()) emptyList<Pair<String, Double>>()
+                else {
+                    val groups = marks.groupBy { it.subjectId }
+                    groups.map { (subId, markList) ->
+                        val subName = subjects.firstOrNull { it.id == subId }?.name ?: "Subject #$subId"
+                        val avg = if (markList.isNotEmpty()) {
+                            val totalObtained = markList.sumOf { it.marksObtained }
+                            val totalMax = markList.sumOf { it.maxMarks }.coerceAtLeast(1.0)
+                            (totalObtained / totalMax) * 100.0
+                        } else 0.0
+                        subName to avg
+                    }.sortedByDescending { it.second }
+                }
+            }
+
+            val overallAvg = remember(marks) {
+                if (marks.isEmpty()) 0.0
+                else {
+                    val totalObtained = marks.sumOf { it.marksObtained }
+                    val totalMax = marks.sumOf { it.maxMarks }.coerceAtLeast(1.0)
+                    (totalObtained / totalMax) * 100.0
+                }
+            }
+
+            val passRate = remember(marks) {
+                if (marks.isEmpty()) 0.0
+                else {
+                    val passedCount = marks.count { (it.marksObtained / it.maxMarks.coerceAtLeast(1.0)) >= 0.40 }
+                    (passedCount.toDouble() / marks.size) * 100.0
+                }
+            }
+
+            val bestSubjectPair = subjectAverages.firstOrNull()
+            val weakestSubjectPair = subjectAverages.lastOrNull()
+
+            if (marks.isEmpty()) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.QueryStats, contentDescription = null, modifier = Modifier.size(40.dp), tint = adaptiveSlate600().copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            "No Grades Recorded Yet",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "This student has no marks registered in the active database. Go to the Excel Grid to compile and submit quarterly test results before reviewing this statistics dashboard.",
+                            fontSize = 12.sp,
+                            color = adaptiveSlate600(),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+            } else {
+                // Header section label
+                Text(
+                    text = "ACADEMIC SUMMARY METRICS",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = adaptiveSlate600().copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // 2x2 Grid of visual indicators
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // 1. Core overall average GPA KPI Card
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(115.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Overall Average", fontSize = 10.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
+                                    Icon(
+                                        Icons.Default.Assessment,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Column {
+                                    val avgFormatted = String.format(Locale.getDefault(), "%.1f%%", overallAvg)
+                                    Text(
+                                        text = avgFormatted,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Black,
+                                        color = when {
+                                            overallAvg >= 75.0 -> Color(0xFF2E7D32)
+                                            overallAvg >= 40.0 -> Color(0xFFE65100)
+                                            else -> Color(0xFFC62828)
+                                        }
+                                    )
+                                    Text(
+                                        text = when {
+                                            overallAvg >= 75.0 -> "Outstanding Stand"
+                                            overallAvg >= 40.0 -> "Satisfactory"
+                                            else -> "Coaching Needed"
+                                        },
+                                        fontSize = 9.sp,
+                                        color = adaptiveSlate600()
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. Pass Rate Counter
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(115.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Passing Ratio", fontSize = 10.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2E7D32),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = String.format(Locale.getDefault(), "%.0f%%", passRate),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${marks.size} Completed Exams",
+                                        fontSize = 9.sp,
+                                        color = adaptiveSlate600()
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // 3. Subject with Peak average
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(115.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Peak Subject", fontSize = 10.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFBC02D),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Column {
+                                    if (bestSubjectPair != null) {
+                                        Text(
+                                            text = bestSubjectPair.first,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = String.format(Locale.getDefault(), "Peak Score: %.1f%%", bestSubjectPair.second),
+                                            fontSize = 9.sp,
+                                            color = Color(0xFF2E7D32),
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    } else {
+                                        Text("None")
+                                        Text("Empty records", fontSize = 9.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 4. Focus Subject with minimum entry
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(115.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Focus Subject", fontSize = 10.sp, color = adaptiveSlate600(), fontWeight = FontWeight.Bold)
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Column {
+                                    if (weakestSubjectPair != null) {
+                                        Text(
+                                            text = weakestSubjectPair.first,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = String.format(Locale.getDefault(), "Weakest: %.1f%%", weakestSubjectPair.second),
+                                            fontSize = 9.sp,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    } else {
+                                        Text("None")
+                                        Text("Empty records", fontSize = 9.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Detailed Subjects performance analysis
+                Text(
+                    text = "SUBJECT-BY-SUBJECT MARKS AGGREGATION",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = adaptiveSlate600().copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                )
+
+                // Layout grouping mark history for each subject in records
+                subjects.forEach { subject ->
+                    val subjectMarks = marks.filter { it.subjectId == subject.id }
+                    val subjectAvg = if (subjectMarks.isNotEmpty()) {
+                        (subjectMarks.sumOf { it.marksObtained } / subjectMarks.sumOf { it.maxMarks }.coerceAtLeast(1.0)) * 100.0
+                    } else 0.0
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = subject.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (subjectMarks.isNotEmpty()) {
+                                        String.format(Locale.getDefault(), "%.1f%% average", subjectAvg)
+                                    } else {
+                                        "No registered marks"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (subjectMarks.isNotEmpty()) {
+                                        when {
+                                            subjectAvg >= 75.0 -> Color(0xFF2E7D32)
+                                            subjectAvg >= 40.0 -> Color(0xFFE65100)
+                                            else -> Color(0xFFC62828)
+                                        }
+                                    } else adaptiveSlate600()
+                                )
+                            }
+
+                            if (subjectMarks.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                LinearProgressIndicator(
+                                    progress = { (subjectAvg / 100.0).toFloat().coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .clip(RoundedCornerShape(2.dp)),
+                                    color = when {
+                                        subjectAvg >= 75.0 -> Color(0xFF4CAF50)
+                                        subjectAvg >= 40.0 -> Color(0xFFFF9800)
+                                        else -> Color(0xFFF44336)
+                                    },
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    "Mark History Breakdown:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = adaptiveSlate600().copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    subjectMarks.sortedBy { it.examType }.forEach { m ->
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (m.marksObtained / m.maxMarks >= 0.40) Color(0xFF4CAF50) else Color(0xFFF44336)
+                                                    )
+                                            )
+                                            Text(
+                                                text = "${m.examType}: ${m.marksObtained}/${m.maxMarks}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = adaptiveSlate700()
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Gemini LLM powered Advisory Study Plan Card
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Psychology,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "AI Academic Advisory Plan",
+                                    fontWeight = FontWeight.Black,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    "Advisory powered by Gemini LLM study blueprint models",
+                                    fontSize = 10.sp,
+                                    color = adaptiveSlate600()
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (viewModel.isLoadingAdvisory) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .clip(CircleShape)
+                                )
+                                Text(
+                                    "Aggregating student analytics GPA metrics, correlation history, forging specialized lessons plan advisory guide...",
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center,
+                                    color = adaptiveSlate600()
+                                )
+                            }
+                        } else {
+                            if (viewModel.advisoryReport.isNotEmpty()) {
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            text = viewModel.advisoryReport,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            lineHeight = 16.sp,
+                                            fontFamily = FontFamily.SansSerif
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            } else {
+                                Text(
+                                    text = "Dynamic AI advisory engine ready to construct a target study guide & subject weak-points plan based on their active aggregated scores. Click below to begin calculation.",
+                                    fontSize = 11.sp,
+                                    color = adaptiveSlate600(),
+                                    lineHeight = 15.sp,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
+
+                            Button(
+                                onClick = { viewModel.fetchAdvisoryReport(decStudentName) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("profile_generate_advisory_btn")
+                            ) {
+                                Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Generate Dynamic Study Blueprint")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -3455,9 +4911,17 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             val decName = viewModel.getDecryptedStudentName(student.encryptedName)
             val cleanStudentName = decName.replace("\"", "\\\"").replace("\n", " ").replace("\r", " ")
             
-            val trendJson = exams.mapIndexed { idx, name ->
-                val avg = examAverages.getOrElse(idx) { 0.0 }
-                "{\"name\":\"$name\",\"count\":${String.format(java.util.Locale.US, "%.1f", avg)}}"
+            val trendJson = exams.map { examName ->
+                val examMarks = marks.filter { it.examType == examName }
+                val overallAvg = if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
+                
+                val subjectScoresList = subjects.map { subject ->
+                    val specificMark = marks.filter { it.examType == examName && it.subjectId == subject.id }
+                    val score = if (specificMark.isNotEmpty()) specificMark.first().marksObtained else 0.0
+                    "\"${subject.name.replace("\"", "\\\"")}\":${String.format(java.util.Locale.US, "%.1f", score)}"
+                }
+                val subjectScoresPart = if (subjectScoresList.isNotEmpty()) subjectScoresList.joinToString(separator = ",") + "," else ""
+                "{$subjectScoresPart\"name\":\"$examName\",\"count\":${String.format(java.util.Locale.US, "%.1f", overallAvg)}}"
             }.joinToString(prefix = "[", postfix = "]")
 
             val distJson = subjects.map { subject ->
@@ -5034,6 +6498,28 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                             Text(planLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Teal600)
                         }
                     }
+                }
+            }
+        }
+
+        // --- STUDENT ROSTER OR CHILD LIST FOR BILLING / PROFILE TAB ---
+        if (user.role == "INDIVIDUAL_PARENT" || user.role == "VIEW_ONLY_PARENT" || user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "SCHOOL_ADMIN" || user.role == "SUPER_ADMIN" || user.planType == "SCHOOL_PLAN") {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .padding(bottom = 20.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    ProfileStudentListBlock(
+                        user = user,
+                        viewModel = viewModel,
+                        onStudentClick = { student ->
+                            viewModel.selectStudent(student)
+                        }
+                    )
                 }
             }
         }

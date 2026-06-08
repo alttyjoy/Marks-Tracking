@@ -1114,13 +1114,44 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 encryptedName = encryptedName,
                 rollNo = rollNo,
                 studentClass = studentClass,
-                schoolId = if (user.role == "SCHOOL_ADMIN") user.schoolId else "",
-                parentId = if (user.role == "INDIVIDUAL_PARENT") user.id else null,
+                schoolId = if (user.schoolId.isNotEmpty()) user.schoolId else {
+                    if (user.role == "SUPER_ADMIN" || user.role == "SCHOOL_ADMIN") "GLOBAL_SUPER" else ""
+                },
+                parentId = if (user.role == "INDIVIDUAL_PARENT" || user.role == "VIEW_ONLY_PARENT") user.id else user.belongsToOwnerId,
                 parentName = encryptedParentName,
                 schoolName = resolvedSchoolName
             )
-            repository.insertStudent(student)
-            actionMessage = "Add complete: encrypted name metadata index matches database."
+            val newStudentId = repository.insertStudent(student)
+            val addedStudent = student.copy(id = newStudentId)
+            selectedStudent = addedStudent
+
+            try {
+                val belongsToId = if (student.schoolId.isNotEmpty()) student.schoolId else student.parentId?.toString() ?: "SUPER"
+                val activeSubjects = repository.getSubjectsSync(belongsToId)
+                val activeTestTypes = repository.getTestTypesSync(belongsToId)
+                val exams = activeTestTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
+                
+                val initialMarks = mutableListOf<Mark>()
+                activeSubjects.forEach { sub ->
+                    exams.forEach { exam ->
+                        initialMarks.add(
+                            Mark(
+                                studentId = newStudentId,
+                                subjectId = sub.id,
+                                examType = exam,
+                                marksObtained = 0.0,
+                                maxMarks = 100.0
+                            )
+                        )
+                    }
+                }
+                if (initialMarks.isNotEmpty()) {
+                    repository.saveMarksBulk(initialMarks)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            actionMessage = "Add complete: Student added and auto-selected with initial marks populated."
         }
     }
 
@@ -1299,8 +1330,10 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                val schoolIdVal = if (user.role == "SCHOOL_ADMIN") user.schoolId else ""
-                val parentIdVal = if (user.role == "INDIVIDUAL_PARENT") user.id else null
+                val schoolIdVal = if (user.schoolId.isNotEmpty()) user.schoolId else {
+                    if (user.role == "SUPER_ADMIN" || user.role == "SCHOOL_ADMIN") "GLOBAL_SUPER" else ""
+                }
+                val parentIdVal = if (user.role == "INDIVIDUAL_PARENT" || user.role == "VIEW_ONLY_PARENT") user.id else user.belongsToOwnerId
 
                 var insertedCount = 0
                 val belongsToId = if (user.role == "SCHOOL_ADMIN") user.schoolId else user.id.toString()
@@ -1417,6 +1450,142 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 observeCoreData()
             } catch (e: Exception) {
                 actionMessage = "Bulk CSV parsing exception: ${e.message}"
+            }
+        }
+    }
+
+    // --- PapaParse JSON Bulk Import ---
+    fun importParsedCsvJson(jsonText: String) {
+        val user = currentUser ?: return
+        viewModelScope.launch {
+            try {
+                val jsonArray = org.json.JSONArray(jsonText)
+                if (jsonArray.length() == 0) {
+                    actionMessage = "CSV contains no records."
+                    return@launch
+                }
+
+                val schoolIdVal = if (user.schoolId.isNotEmpty()) user.schoolId else {
+                    if (user.role == "SUPER_ADMIN" || user.role == "SCHOOL_ADMIN") "GLOBAL_SUPER" else ""
+                }
+                val parentIdVal = if (user.role == "INDIVIDUAL_PARENT" || user.role == "VIEW_ONLY_PARENT") user.id else user.belongsToOwnerId
+
+                var insertedCount = 0
+                val belongsToId = if (user.role == "SCHOOL_ADMIN") user.schoolId else user.id.toString()
+                val activeSubjects = repository.getSubjectsSync(belongsToId)
+                val activeTestTypes = repository.getTestTypesSync(belongsToId)
+                val exams = activeTestTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
+
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    
+                    var rollNo = ""
+                    var studName = ""
+                    var subjName = ""
+                    var parentEmail = ""
+                    
+                    val keys = obj.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        val value = obj.optString(key).trim()
+                        when (key.lowercase(java.util.Locale.US).replace("_", "").replace(" ", "")) {
+                            "rollno", "roll" -> rollNo = value
+                            "studentname", "student", "name" -> studName = value
+                            "subject", "subj" -> subjName = value
+                            "parentemail", "parent" -> parentEmail = value
+                        }
+                    }
+
+                    if (studName.isEmpty() || subjName.isEmpty()) continue
+
+                    val encName = EncryptionUtil.encrypt(studName)
+                    val existingStuds = _studentsList.value
+                    var studentObj = existingStuds.find { 
+                        EncryptionUtil.decrypt(it.encryptedName).equals(studName, true) && it.rollNo == rollNo 
+                    }
+                    if (studentObj == null) {
+                        if (user.role != "SUPER_ADMIN" && user.role != "SCHOOL_ADMIN") {
+                            if (user.planType == "FREE") {
+                                val count = _studentsList.value.size + insertedCount
+                                if (count >= 1) {
+                                    actionMessage = "Error: Free Plan is capped at a maximum of 1 student."
+                                    break
+                                }
+                            }
+                            else if (user.planType == "INDIVIDUAL_PARENT_PLAN" || user.role == "INDIVIDUAL_PARENT") {
+                                val count = _studentsList.value.size + insertedCount
+                                if (count >= 4) {
+                                    actionMessage = "Error: Parents Plan is capped at a maximum of 4 children."
+                                    break
+                                }
+                            }
+                            else if (user.planType == "SCHOOL_PLAN" || user.role == "SCHOOL_ADMIN") {
+                                val count = repository.getStudentCountForSchool(user.schoolId)
+                                if (count >= 200) {
+                                    actionMessage = "Error: School plans capped at 200 student directories max."
+                                    break
+                                }
+                            }
+                        }
+                        val newStudId = repository.insertStudent(
+                            Student(
+                                encryptedName = encName,
+                                rollNo = rollNo,
+                                schoolId = schoolIdVal,
+                                parentId = parentIdVal
+                            )
+                        )
+                        studentObj = Student(id = newStudId, encryptedName = encName, rollNo = rollNo, schoolId = schoolIdVal, parentId = parentIdVal)
+                    }
+
+                    if (parentEmail.isNotEmpty() && parentEmail.contains("@") && user.role == "SCHOOL_ADMIN") {
+                        val existingParent = repository.getUserByEmail(parentEmail)
+                        if (existingParent == null) {
+                            val autoParent = UserAccount(
+                                name = EncryptionUtil.encrypt("Parent of $studName"),
+                                email = parentEmail,
+                                passwordHash = "Pass123",
+                                role = "VIEW_ONLY_PARENT",
+                                planType = "FREE",
+                                schoolId = user.schoolId,
+                                associatedStudentId = studentObj.id,
+                                belongsToOwnerId = user.id
+                            )
+                            repository.insertUser(autoParent)
+                        } else {
+                            if (existingParent.associatedStudentId != studentObj.id) {
+                                repository.insertUser(existingParent.copy(associatedStudentId = studentObj.id))
+                            }
+                        }
+                    }
+
+                    var subjectObj = activeSubjects.find { it.name.equals(subjName, true) }
+                    if (subjectObj == null) {
+                        val subId = repository.insertSubject(Subject(name = subjName, belongsToId = belongsToId))
+                        subjectObj = Subject(id = subId, name = subjName, belongsToId = belongsToId)
+                    }
+
+                    for (exam in exams) {
+                        var foundScore: Double? = null
+                        val examKeys = obj.keys()
+                        while (examKeys.hasNext()) {
+                            val eKey = examKeys.next()
+                            if (eKey.trim().equals(exam, ignoreCase = true)) {
+                                foundScore = obj.optString(eKey).toDoubleOrNull()
+                                break
+                            }
+                        }
+                        if (foundScore != null) {
+                            repository.saveMark(studentObj.id, subjectObj.id, exam, foundScore)
+                        }
+                    }
+                    insertedCount++
+                }
+
+                actionMessage = "PapaParse Import Success: Processed and bulk inserted $insertedCount student records."
+                observeCoreData()
+            } catch (e: Exception) {
+                actionMessage = "PapaParse Integration Parsing exception: ${e.message}"
             }
         }
     }
