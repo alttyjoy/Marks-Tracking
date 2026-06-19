@@ -525,10 +525,56 @@ object PdfReportGenerator {
             pdfDocument.writeTo(fos)
             pdfDocument.close()
             fos.close()
+            
+            // Also copy to the device's public Downloads directory
+            copyToPublicDownloads(context, finalFile, finalFile.name)
+            
             finalFile
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
+    }
+
+    private fun copyToPublicDownloads(context: Context, sourceFile: File, filename: String): Boolean {
+        val resolver = context.contentResolver
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            val contentValues = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/MarksReports")
+            }
+            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                try {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        sourceFile.inputStream().use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+                    return true
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } else {
+            val targetDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+            val marksReportsDir = File(targetDir, "MarksReports")
+            if (!marksReportsDir.exists()) {
+                marksReportsDir.mkdirs()
+            }
+            val targetFile = File(marksReportsDir, filename)
+            try {
+                sourceFile.inputStream().use { inputStream ->
+                    targetFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+                return true
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        return false
     }
 }

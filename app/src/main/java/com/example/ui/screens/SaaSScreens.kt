@@ -129,7 +129,7 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
         ) {
             Image(
                 painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.img_app_icon_1779790784801),
-                contentDescription = "AaVi Technos Logo",
+                contentDescription = "Edu Marks Tracking Logo",
                 modifier = Modifier
                     .size(160.dp)
                     .graphicsLayer(
@@ -145,7 +145,7 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                text = "AaVi Technos",
+                text = "Edu Marks Tracking",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
@@ -209,11 +209,12 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
     if (showSplashScreen) {
         CustomSplashScreen(onTimeout = { showSplashScreen = false })
     } else {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .testTag("app_navigation_scaffold"),
+        GlobalErrorBoundary(viewModel = viewModel) {
+            Scaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .testTag("app_navigation_scaffold"),
             topBar = {
                 if (isConfigured && currentUser != null) {
                     Card(
@@ -343,9 +344,17 @@ fun AppNavigationShell(viewModel: MarksViewModel) {
                         else -> DataEntryGridScreen(viewModel)
                     }
                 }
+                
+                UserNotificationOverlay(
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
+                )
             }
         }
     }
+}
 }
 
 // --- Dynamic List of Children or Students for Profiles ---
@@ -2134,7 +2143,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed once a year or auto-renewed. All digital materials, student folders, and report card worksheets are delivered securely to your account immediately after payment confirmation.",
+                    text = "© 2026 Edu Marks Tracking. All rights reserved. Subscriptions are billed once a year or auto-renewed. All digital materials, student folders, and report card worksheets are delivered securely to your account immediately after payment confirmation.",
                     fontSize = 8.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,
@@ -2419,6 +2428,9 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
                 modifier = Modifier.padding(bottom = 12.dp)
             )
         }
+
+        CloudSyncStatusPanel()
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Students selection / Add section (View-only Parent cannot add kids)
         if (user.role != "VIEW_ONLY_PARENT") {
@@ -4080,6 +4092,7 @@ fun StudentProfileScreen(viewModel: MarksViewModel, onBackToGrid: () -> Unit) {
     val testTypes by viewModel.testTypesList.collectAsState()
     val marks by viewModel.marksList.collectAsState()
     val currentStudent = viewModel.selectedStudent
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -4197,6 +4210,77 @@ fun StudentProfileScreen(viewModel: MarksViewModel, onBackToGrid: () -> Unit) {
             }
         } else {
             val decStudentName = viewModel.getDecryptedStudentName(currentStudent.encryptedName)
+
+            // Dynamic Report PDF Generated Banner
+            viewModel.lastDownloadedReportFile?.let { pdfFile ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "PDF Academic Report generated!", 
+                                fontWeight = FontWeight.Bold, 
+                                fontSize = 13.sp, 
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = pdfFile.name, 
+                                fontSize = 10.sp, 
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val uri = FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        pdfFile
+                                    )
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/pdf"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Share Academic Report"))
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = "Share", modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Share", fontSize = 11.sp)
+                            }
+                            IconButton(
+                                onClick = { viewModel.lastDownloadedReportFile = null },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close, 
+                                    contentDescription = "Dismiss", 
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             // High-Contrast Header Card (Visual Identity & Identity Details)
             Card(
@@ -4805,12 +4889,18 @@ fun StudentProfileScreen(viewModel: MarksViewModel, onBackToGrid: () -> Unit) {
 
 // --- 4. Advanced Interactive Dashboard Tab (Canvas-drawn dynamic charts) ---
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
     val student = viewModel.selectedStudent
     val subjects by viewModel.subjectsList.collectAsState()
     val testTypes by viewModel.testTypesList.collectAsState()
     val marks by viewModel.marksList.collectAsState()
     val allMarks by viewModel.allMarksList.collectAsState()
+
+    var selectedSubjects by remember(subjects) { mutableStateOf(subjects.map { it.id }.toSet()) }
+    val displayedMarks = remember(marks, selectedSubjects) {
+        marks.filter { it.subjectId in selectedSubjects }
+    }
 
     Column(
         modifier = Modifier
@@ -4864,9 +4954,142 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             return@Column
         }
 
+        // --- SUBJECT MULTI-SELECT CHIPS FILTER COMPONENT ---
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+                .testTag("subject_filter_card"),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Filter Trend Analysis by Subjects",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Select one or more subjects to analyze specialized progress trends",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = adaptiveSlate600(),
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextButton(
+                            onClick = { selectedSubjects = subjects.map { it.id }.toSet() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp).testTag("select_all_subjects_button")
+                        ) {
+                            Text("All", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        TextButton(
+                            onClick = { selectedSubjects = emptySet() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp).testTag("clear_all_subjects_button")
+                        ) {
+                            Text("Clear", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    subjects.forEach { subject ->
+                        val isSelected = subject.id in selectedSubjects
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                selectedSubjects = if (isSelected) {
+                                    selectedSubjects - subject.id
+                                } else {
+                                    selectedSubjects + subject.id
+                                }
+                            },
+                            label = { 
+                                Text(
+                                    text = subject.name,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ) 
+                            },
+                            leadingIcon = if (isSelected) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else null,
+                            modifier = Modifier.testTag("subject_chip_${subject.id}")
+                        )
+                    }
+                }
+            }
+        }
+
+        if (selectedSubjects.isEmpty()) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .testTag("no_subjects_warning_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "No Subjects Selected",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Please select at least one subject from the multi-select filter above to visualize academic trends and performance progress.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        } else {
+
         val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
         val examAverages = exams.map { exam ->
-            val examMarks = marks.filter { it.examType == exam }
+            val examMarks = displayedMarks.filter { it.examType == exam }
             if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
         }
 
@@ -4912,11 +5135,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
             val cleanStudentName = decName.replace("\"", "\\\"").replace("\n", " ").replace("\r", " ")
             
             val trendJson = exams.map { examName ->
-                val examMarks = marks.filter { it.examType == examName }
+                val examMarks = displayedMarks.filter { it.examType == examName }
                 val overallAvg = if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
                 
-                val subjectScoresList = subjects.map { subject ->
-                    val specificMark = marks.filter { it.examType == examName && it.subjectId == subject.id }
+                val subjectScoresList = subjects.filter { it.id in selectedSubjects }.map { subject ->
+                    val specificMark = displayedMarks.filter { it.examType == examName && it.subjectId == subject.id }
                     val score = if (specificMark.isNotEmpty()) specificMark.first().marksObtained else 0.0
                     "\"${subject.name.replace("\"", "\\\"")}\":${String.format(java.util.Locale.US, "%.1f", score)}"
                 }
@@ -4924,15 +5147,15 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 "{$subjectScoresPart\"name\":\"$examName\",\"count\":${String.format(java.util.Locale.US, "%.1f", overallAvg)}}"
             }.joinToString(prefix = "[", postfix = "]")
 
-            val distJson = subjects.map { subject ->
-                val subMarks = marks.filter { it.subjectId == subject.id }
+            val distJson = subjects.filter { it.id in selectedSubjects }.map { subject ->
+                val subMarks = displayedMarks.filter { it.subjectId == subject.id }
                 val mean = if (subMarks.isNotEmpty()) subMarks.map { it.marksObtained }.average() else 0.0
                 val minVal = if (subMarks.isNotEmpty()) subMarks.minOf { it.marksObtained } else 0.0
                 val maxVal = if (subMarks.isNotEmpty()) subMarks.maxOf { it.marksObtained } else 0.0
                 "{\"subject\":\"${subject.name}\",\"marks\":${String.format(java.util.Locale.US, "%.1f", mean)},\"min\":${minVal.toInt()},\"max\":${maxVal.toInt()}}"
             }.joinToString(prefix = "[", postfix = "]")
 
-            val overallMean = if (marks.isNotEmpty()) marks.map { it.marksObtained }.average() else 0.0
+            val overallMean = if (displayedMarks.isNotEmpty()) displayedMarks.map { it.marksObtained }.average() else 0.0
             val rank = when {
                 overallMean >= 90 -> "A+ Excellent"
                 overallMean >= 80 -> "A Good"
@@ -4941,7 +5164,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 overallMean >= 50 -> "C Need Effort"
                 else -> "F Needs Tutorial"
             }
-            val totalMarksEntered = marks.size
+            val totalMarksEntered = displayedMarks.size
             val overallStatsJson = "{\"average\":${String.format(java.util.Locale.US, "%.1f", overallMean)},\"rank\":\"$rank\",\"achievedRatio\":\"$totalMarksEntered Entries\",\"status\":\"Performance Loaded\"}"
 
             val dashboardDataJson = """
@@ -4971,7 +5194,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(18.dp))
 
                 val examAverages = exams.map { exam ->
-                    val examMarks = marks.filter { it.examType == exam }
+                    val examMarks = displayedMarks.filter { it.examType == exam }
                     if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
                 }
 
@@ -5090,8 +5313,8 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
 
                 // Canvas representing Min - Max mark range
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    subjects.forEach { subject ->
-                        val subMarks = marks.filter { it.subjectId == subject.id }
+                    subjects.filter { it.id in selectedSubjects }.forEach { subject ->
+                        val subMarks = displayedMarks.filter { it.subjectId == subject.id }
                         if (subMarks.isNotEmpty()) {
                             val minVal = subMarks.minOf { it.marksObtained }
                             val maxVal = subMarks.maxOf { it.marksObtained }
@@ -5134,8 +5357,8 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
 
                 // Subject summary grids
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    subjects.forEach { subject ->
-                        val subMarks = marks.filter { it.subjectId == subject.id }
+                    subjects.filter { it.id in selectedSubjects }.forEach { subject ->
+                        val subMarks = displayedMarks.filter { it.subjectId == subject.id }
                         val mean = if (subMarks.isNotEmpty()) subMarks.map { it.marksObtained }.average() else 0.0
                         
                         Row(
@@ -5174,7 +5397,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(18.dp))
 
                 val trendScores = exams.map { exam ->
-                    val examMarks = marks.filter { it.examType == exam }
+                    val examMarks = displayedMarks.filter { it.examType == exam }
                     if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
                 }
 
@@ -5299,6 +5522,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     }
                 }
             }
+        }
         }
         }
 
@@ -5614,7 +5838,73 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("📦 Data Portability & Parental Outbox Suite", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Beautiful Local CSV Backup Saved Banner
+                viewModel.lastExportedCsvFile?.let { backupFile ->
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudDone,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "External CSV Backup Saved!",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = backupFile.name,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { viewModel.lastExportedCsvFile = null },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss Tracker",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Text(
                     text = "Unlock high-fidelity data backups. Instantly compile all student spreadsheets to raw CSV datasets or trigger simulated secure mail bulletins to matching parents.",
                     style = MaterialTheme.typography.bodySmall,
@@ -5727,7 +6017,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 text = {
                     Column {
                         Text(
-                            "Highlight or copy the dataset underneath. Complete data arrays are fully compiled offline in real time.",
+                            "Compile all student academic spreadsheets to a Raw CSV dataset to maintain persistent local or cloud backups.",
                             fontSize = 12.sp,
                             color = adaptiveSlate600()
                         )
@@ -5755,21 +6045,45 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     }
                 },
                 confirmButton = {
-                    Button(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            val clip = android.content.ClipData.newPlainText("Student Marks CSV", csvData)
-                            clipboard.setPrimaryClip(clip)
-                            android.widget.Toast.makeText(context, "Spreadsheet dataset copied to clipboard successfully!", android.widget.Toast.LENGTH_SHORT).show()
-                            showCsvDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Blue500)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Copy to Clipboard", fontSize = 12.sp)
+                        Button(
+                            onClick = {
+                                viewModel.exportAllStudentsMarksCsvToFile()
+                                showCsvDialog = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Blue500),
+                            modifier = Modifier.testTag("csv_save_file_btn")
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Export File", fontSize = 12.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("Student Marks CSV", csvData)
+                                clipboard.setPrimaryClip(clip)
+                                android.widget.Toast.makeText(context, "Spreadsheet dataset copied to clipboard successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                                showCsvDialog = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                            modifier = Modifier.testTag("csv_copy_raw_btn")
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copy Raw", fontSize = 12.sp)
+                        }
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showCsvDialog = false }) {
+                    TextButton(
+                        onClick = { showCsvDialog = false },
+                        modifier = Modifier.testTag("csv_dialog_dismiss_btn")
+                    ) {
                         Text("Dismiss", fontSize = 12.sp)
                     }
                 }
@@ -6998,7 +7312,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "© 2026 AaVi Technos. All rights reserved. Subscriptions are billed once a year or auto-renewed. All digital materials, student folders, and report card worksheets are delivered securely to your account immediately after payment confirmation.",
+                    text = "© 2026 Edu Marks Tracking. All rights reserved. Subscriptions are billed once a year or auto-renewed. All digital materials, student folders, and report card worksheets are delivered securely to your account immediately after payment confirmation.",
                     fontSize = 8.sp,
                     color = Slate600,
                     textAlign = TextAlign.Center,

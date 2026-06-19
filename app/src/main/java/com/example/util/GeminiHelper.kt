@@ -95,8 +95,9 @@ object GeminiHelper {
 
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    Log.e(TAG, "Gemini API error: Code ${response.code}, Body: ${response.body?.string()}")
-                    return@withContext getLocalPlanFallback(studentName, subjects, marks)
+                    val errorMsg = "Gemini API failure: HTTP ${response.code}"
+                    Log.e(TAG, errorMsg)
+                    throw java.io.IOException(errorMsg)
                 }
 
                 val responseBodyStr = response.body?.string() ?: ""
@@ -112,15 +113,15 @@ object GeminiHelper {
                         }
                     }
                 }
-                return@withContext getLocalPlanFallback(studentName, subjects, marks)
+                throw java.lang.IllegalStateException("No content candidate received from Gemini service.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception during Gemini network call: ${e.message}", e)
-            return@withContext getLocalPlanFallback(studentName, subjects, marks)
+            throw e
         }
     }
 
-    private fun getLocalPlanFallback(studentName: String, subjects: List<Subject>, marks: List<Mark>): String {
+    fun getLocalPlanFallback(studentName: String, subjects: List<Subject>, marks: List<Mark>): String {
         val lowPerformingSubjects = mutableListOf<String>()
         val downwardTrendSubjects = mutableListOf<String>()
         val strengths = mutableListOf<String>()

@@ -14,6 +14,8 @@ import com.example.data.model.Subject
 import com.example.data.model.Mark
 import com.example.data.model.PaymentRecord
 import com.example.data.model.TestType
+import com.example.data.sync.SyncQueueEntry
+import com.example.data.sync.SyncQueueDao
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -159,9 +161,10 @@ interface PaymentRecordDao {
         Subject::class,
         Mark::class,
         PaymentRecord::class,
-        TestType::class
+        TestType::class,
+        SyncQueueEntry::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -172,4 +175,52 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun markDao(): MarkDao
     abstract fun testTypeDao(): TestTypeDao
     abstract fun paymentRecordDao(): PaymentRecordDao
+    abstract fun syncQueueDao(): SyncQueueDao
+}
+
+val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `payment_records` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `userName` TEXT NOT NULL, `userEmail` TEXT NOT NULL, `planType` TEXT NOT NULL, `basePrice` REAL NOT NULL, `gstAmount` REAL NOT NULL, `totalAmount` REAL NOT NULL, `paymentGateway` TEXT NOT NULL, `paymentId` TEXT NOT NULL, `timestamp` INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `test_types` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `belongsToId` TEXT NOT NULL)")
+
+        // Add potentially missing columns safely
+        try {
+            db.execSQL("ALTER TABLE `user_accounts` ADD COLUMN `associatedStudentId` INTEGER")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            db.execSQL("ALTER TABLE `user_accounts` ADD COLUMN `belongsToOwnerId` INTEGER")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        try {
+            db.execSQL("ALTER TABLE `students` ADD COLUMN `parentId` INTEGER")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            db.execSQL("ALTER TABLE `students` ADD COLUMN `parentName` TEXT NOT NULL DEFAULT ''")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            db.execSQL("ALTER TABLE `students` ADD COLUMN `schoolName` TEXT NOT NULL DEFAULT ''")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        try {
+            db.execSQL("ALTER TABLE `marks` ADD COLUMN `maxMarks` REAL NOT NULL DEFAULT 100.0")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+    override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `sync_queue` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `entityType` TEXT NOT NULL, `operation` TEXT NOT NULL, `entityId` INTEGER NOT NULL, `payloadJson` TEXT NOT NULL, `timestamp` INTEGER NOT NULL)")
+    }
 }
