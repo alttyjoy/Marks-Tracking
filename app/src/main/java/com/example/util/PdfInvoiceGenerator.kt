@@ -122,13 +122,13 @@ object PdfInvoiceGenerator {
 
         // Bottom Footer details
         y += 80f
-        canvas.drawText("System Certifications & Security Compliance:", 50f, y, labelPaint)
+        canvas.drawText("System Certifications & Workspace Compliance:", 50f, y, labelPaint)
         y += 15f
-        canvas.drawText("1. This is a computationally signed invoice registered under multi-tenant SSL/CSRF protection rules.", 50f, y, mutedPaint)
+        canvas.drawText("1. This is a digitally generated invoice registered under secure student workspace protection rules.", 50f, y, mutedPaint)
         y += 12f
-        canvas.drawText("2. Fully compliant with AES-256 local-first client student identifiers encoding.", 50f, y, mutedPaint)
+        canvas.drawText("2. Fully compliant with secure local school storage and privacy protection.", 50f, y, mutedPaint)
         y += 12f
-        canvas.drawText("3. For technical queries regarding your subscriptions, mail to support@markstracking.edu.com.", 50f, y, mutedPaint)
+        canvas.drawText("3. For support queries regarding your subscriptions, mail to support@markstracking.edu.com.", 50f, y, mutedPaint)
 
         // Footer signature placeholder
         y += 50f

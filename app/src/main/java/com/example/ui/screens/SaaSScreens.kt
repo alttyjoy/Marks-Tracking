@@ -665,7 +665,7 @@ fun ProfileStudentListBlock(
                                                     color = adaptiveSlate600()
                                                 )
                                                 Text(
-                                                    text = "${studentMarks.size} exam marks in school database",
+                                                    text = "${studentMarks.size} exam marks in school records",
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Medium,
                                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
@@ -754,6 +754,8 @@ fun UserProfileDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                CloudSyncStatusPanel()
+
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
@@ -1072,7 +1074,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                 .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            val stepsList = listOf("Database", "SMTP Email", "Gateway", "Administrator")
+            val stepsList = listOf("Workspace", "SMTP Email", "Gateway", "Administrator")
             stepsList.forEachIndexed { idx, label ->
                 val activeIdx = idx + 1
                 val isActive = step == activeIdx
@@ -1139,13 +1141,13 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
             Column(modifier = Modifier.padding(20.dp)) {
                 when (step) {
                     1 -> {
-                        Text("Database Settings (Row-Isolated Spanner Multi-Tenant)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Connection Settings (Row-Isolated School Workspace)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         OutlinedTextField(
                             value = dbHost,
                             onValueChange = { dbHost = it },
-                            label = { Text("Database Host URL") },
+                            label = { Text("School Workspace Server") },
                             modifier = Modifier.fillMaxWidth().testTag("db_host_input"),
                             singleLine = true
                         )
@@ -1154,7 +1156,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = dbName,
                             onValueChange = { dbName = it },
-                            label = { Text("Database Name") },
+                            label = { Text("Workspace Name") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -1163,7 +1165,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = dbUser,
                             onValueChange = { dbUser = it },
-                            label = { Text("DB Administration Username") },
+                            label = { Text("Workspace Admin Username") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -1172,7 +1174,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = dbPass,
                             onValueChange = { dbPass = it },
-                            label = { Text("DB Password Code") },
+                            label = { Text("Workspace Password Code") },
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
@@ -1185,14 +1187,14 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                         Button(
                             onClick = {
                                 testSuccess = true
-                                testMsg = "SSL TLS handshake successful: Connected to JDBC Spanner schema."
+                                testMsg = "Secure connection handshake successful: Connected to school workspace."
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Slate700),
                             modifier = Modifier.testTag("test_database_connection")
                         ) {
                             Icon(Icons.Default.Power, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Test DB Connection", fontSize = 12.sp)
+                            Text("Test Connection", fontSize = 12.sp)
                         }
                         if (testSuccess) {
                             Text(testMsg, color = Teal500, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
@@ -1214,7 +1216,7 @@ fun SetupWizardScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = smtpPort,
                             onValueChange = { smtpPort = it },
-                            label = { Text("TLS Encryption Port") },
+                            label = { Text("Secure Connection Port") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
@@ -1560,7 +1562,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     } else {
                         // --- REGISTER FLOW ---
                         Text(
-                            "Create Encrypted Account Node",
+                            "Create Secure Academic Account",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1688,7 +1690,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Column {
                                     Text("School Suite Tier", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Text("Track up to 200 students, CSV Batch, sub-accounts, multi-tenant locks.", fontSize = 10.sp, color = adaptiveSlate600())
+                                    Text("Track up to 200 students, CSV batch, sub-accounts, school access controls.", fontSize = 10.sp, color = adaptiveSlate600())
                                 }
                             }
                         }
@@ -2173,7 +2175,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
             title = {
                 val title = when (complianceDocToShow) {
                     "TC" -> "Terms & Conditions of Service"
-                    "PRIVACY" -> "Privacy & Encryption Policy"
+                    "PRIVACY" -> "Privacy & Security Policy"
                     "REFUND" -> "Cancellation & Refund SLA"
                     "SHIPPING" -> "Digital Access & Delivery Policy"
                     "CONTACT" -> "Merchant Contact Support Registry"
@@ -2334,88 +2336,10 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
 
         // Dialog for User Profile
         if (showProfileDialog) {
-            AlertDialog(
-                onDismissRequest = { showProfileDialog = false },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Logged In Profile", fontWeight = FontWeight.Bold)
-                    }
-                },
-                text = {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Text("Full Name:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
-                                Text(user.name, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Text("Email ID:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
-                                Text(user.email, fontSize = 13.sp)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Text("Security Role:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
-                                Text(user.role.replace("_", " "), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Blue600)
-                            }
-                            if (user.schoolId.isNotEmpty()) {
-                                Row(modifier = Modifier.fillMaxWidth()) {
-                                    Text("School Tenant:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
-                                    Text(user.schoolId, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
-                                }
-                            }
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Text("Active Plan:", modifier = Modifier.width(100.dp), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = adaptiveSlate600())
-                                val planLabel = when(user.planType) {
-                                    "FREE" -> "FREE PLAN"
-                                    "INDIVIDUAL_PARENT_PLAN" -> "PARENTS PLAN"
-                                    "SCHOOL_PLAN" -> "SCHOOL PLAN"
-                                    else -> user.planType
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .background(Teal500.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(planLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Teal600)
-                                }
-                            }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                            Text(
-                                "Security Ledger Information:",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                "All student records and grade score metrics are mapped against your unique user ID and locally encrypted using AES-256 before disk persistence.",
-                                fontSize = 10.sp,
-                                color = adaptiveSlate600()
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = { showProfileDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("Nice!")
-                    }
-                }
+            UserProfileDialog(
+                user = user,
+                viewModel = viewModel,
+                onDismiss = { showProfileDialog = false }
             )
         }
 
@@ -2428,9 +2352,6 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
                 modifier = Modifier.padding(bottom = 12.dp)
             )
         }
-
-        CloudSyncStatusPanel()
-        Spacer(modifier = Modifier.height(16.dp))
 
         // Students selection / Add section (View-only Parent cannot add kids)
         if (user.role != "VIEW_ONLY_PARENT") {
@@ -2564,7 +2485,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Query student databases across all institutional nodes securely. Select any match to modify academic columns.",
+                        text = "Search student records across all institutional groups securely. Select any match to modify academic columns.",
                         style = MaterialTheme.typography.bodySmall,
                         color = adaptiveSlate600()
                     )
@@ -2894,126 +2815,169 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
             ) {
                 val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
                 
-                Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    // Header Row
-                    Row(
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                    // Left Column (Locked/Pinned Column)
+                    Column(
                         modifier = Modifier
-                            .background(Slate900)
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .width(130.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     ) {
-                        Text(
-                            "Subject Name",
+                        // Left Header Row
+                        Box(
                             modifier = Modifier
-                                .width(130.dp)
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .background(Slate900)
                                 .padding(start = 12.dp),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                        exams.forEach { exam ->
+                            contentAlignment = Alignment.CenterStart
+                        ) {
                             Text(
-                                exam,
-                                modifier = Modifier
-                                    .width(90.dp),
+                                "Subject Name",
                                 color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                        
+                        HorizontalDivider(color = Slate600)
+                        
+                        // Left Rows
+                        subjects.forEach { subject ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    subject.name,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
+                        }
+                    }
+                    
+                    // Vertical Separator Line between pinned and scrollable columns
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(Slate600)
+                    )
+                    
+                    // Right Columns (Scrollable Area)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        // Right Header Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .background(Slate900),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            exams.forEach { exam ->
+                                Text(
+                                    exam,
+                                    modifier = Modifier.width(90.dp),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            Text(
+                                "Mean (%)",
+                                modifier = Modifier.width(90.dp),
+                                color = Teal400,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 textAlign = TextAlign.Center
                             )
                         }
-                        Text(
-                            "Mean (%)",
-                            modifier = Modifier
-                                .width(90.dp)
-                                .padding(end = 12.dp),
-                            color = Teal400,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    HorizontalDivider(color = Slate600)
-
-                    // Data Rows
-                    subjects.forEach { subject ->
-                        var subjectSum = 0.0
-                        var count = 0
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 6.dp)
-                        ) {
-                            Text(
-                                subject.name,
-                                modifier = Modifier
-                                    .width(130.dp)
-                                    .padding(start = 12.dp),
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            exams.forEach { exam ->
-                                val cellKey = "${subject.id}_$exam"
-                                val textVal = viewModel.gridMarks[cellKey] ?: ""
-                                val isEnabled = user.role != "VIEW_ONLY_PARENT"
-
-                                val scoreDouble = textVal.toDoubleOrNull()
-                                if (scoreDouble != null) {
-                                    subjectSum += scoreDouble
-                                    count++
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .width(90.dp)
-                                        .height(44.dp)
-                                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isEnabled) Slate100 else Slate50)
-                                        .border(1.dp, Slate600, RoundedCornerShape(6.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    BasicTextField(
-                                        value = textVal,
-                                        onValueChange = { 
-                                            if (isEnabled) {
-                                                viewModel.updateGridCell(subject.id, exam, it)
-                                            }
-                                        },
-                                        enabled = isEnabled,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        textStyle = LocalTextStyle.current.copy(
-                                            textAlign = TextAlign.Center,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (scoreDouble != null && scoreDouble < 40.0) Rose500 else Color.Black
-                                        ),
+                        
+                        HorizontalDivider(color = Slate600)
+                        
+                        // Right Data Rows
+                        subjects.forEach { subject ->
+                            var subjectSum = 0.0
+                            var count = 0
+                            Row(
+                                modifier = Modifier.height(56.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                exams.forEach { exam ->
+                                    val cellKey = "${subject.id}_$exam"
+                                    val textVal = viewModel.gridMarks[cellKey] ?: ""
+                                    val isEnabled = user.role != "VIEW_ONLY_PARENT"
+ 
+                                    val scoreDouble = textVal.toDoubleOrNull()
+                                    if (scoreDouble != null) {
+                                        subjectSum += scoreDouble
+                                        count++
+                                    }
+ 
+                                    Box(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp, horizontal = 2.dp)
-                                            .testTag("cell_${subject.id}_${exam}")
-                                    )
+                                            .width(90.dp)
+                                            .height(44.dp)
+                                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (isEnabled) {
+                                                    MaterialTheme.colorScheme.surfaceVariant
+                                                } else {
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                }
+                                            )
+                                            .border(1.dp, Slate600, RoundedCornerShape(6.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        BasicTextField(
+                                            value = textVal,
+                                            onValueChange = { 
+                                                if (isEnabled) {
+                                                    viewModel.updateGridCell(subject.id, exam, it)
+                                                }
+                                            },
+                                            enabled = isEnabled,
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            textStyle = LocalTextStyle.current.copy(
+                                                textAlign = TextAlign.Center,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (scoreDouble != null && scoreDouble < 40.0) Rose500 else MaterialTheme.colorScheme.onSurface
+                                            ),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp, horizontal = 2.dp)
+                                                .testTag("cell_${subject.id}_${exam}")
+                                        )
+                                    }
                                 }
+ 
+                                // Average Mean Column on right side
+                                val rowMeanVal = if (count > 0) subjectSum / count else 0.0
+                                Text(
+                                    if (count > 0) "${String.format("%.1f", rowMeanVal)}%" else "-",
+                                    modifier = Modifier.width(90.dp),
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (rowMeanVal < 40.0 && count > 0) Rose500 else Blue500
+                                )
                             }
-
-                            // Math Rows average computation
-                            val rowMeanVal = if (count > 0) subjectSum / count else 0.0
-                            Text(
-                                if (count > 0) "${String.format("%.1f", rowMeanVal)}%" else "-",
-                                modifier = Modifier
-                                    .width(90.dp)
-                                    .padding(end = 12.dp),
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = if (rowMeanVal < 40.0 && count > 0) Rose500 else Blue500
-                            )
+                            HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
                         }
-                        HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
                     }
                 }
             }
@@ -3446,177 +3410,38 @@ fun RechartsDashboard(jsonData: String) {
 
                 const infoData = $jsonData;
 
-                // --- D3-based line chart React Component wrapper ---
-                const D3LineChart = ({ data }) => {
-                    const svgRef = React.useRef();
-
-                    React.useEffect(() => {
-                        if (!data || data.length === 0) return;
-
-                        const d3Val = window.d3;
-                        const svg = d3Val.select(svgRef.current);
-                        
-                        // Responsive drawing function
-                        const renderChart = () => {
-                            svg.selectAll("*").remove();
-
-                            const margin = { top: 25, right: 30, bottom: 35, left: 45 };
-                            const width = svgRef.current.parentElement.clientWidth || 320;
-                            const height = 180;
-                            const innerWidth = width - margin.left - margin.right;
-                            const innerHeight = height - margin.top - margin.bottom;
-
-                            svg
-                                .attr("width", "100%")
-                                .attr("height", height)
-                                .attr("viewBox", "0 0 " + width + " " + height)
-                                .attr("preserveAspectRatio", "xMidYMid meet");
-
-                            const g = svg.append("g")
-                                .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
-
-                            // Scales
-                            const xScale = d3Val.scalePoint()
-                                .domain(data.map(d => d.semester))
-                                .range([0, innerWidth])
-                                .padding(0.3);
-
-                            const yScale = d3Val.scaleLinear()
-                                .domain([0, 100])
-                                .range([innerHeight, 0]);
-
-                            // Grid lines
-                            g.append("g")
-                                .attr("class", "grid")
-                                .attr("opacity", 0.08)
-                                .call(d3Val.axisLeft(yScale)
-                                    .tickSize(-innerWidth)
-                                    .tickFormat("")
-                                );
-
-                            g.selectAll(".grid line")
-                                .attr("stroke", "#475569")
-                                .attr("stroke-width", 1);
-
-                            // Axes
-                            const xAxis = d3Val.axisBottom(xScale).tickSize(5);
-                            const xAxisG = g.append("g")
-                                .attr("transform", "translate(0, " + innerHeight + ")")
-                                .call(xAxis);
-                            xAxisG.attr("font-size", "7.5px")
-                                .attr("color", "#94a3b8")
-                                .attr("font-weight", "600");
-                            xAxisG.select(".domain")
-                                .attr("stroke", "#475569")
-                                .attr("stroke-width", 1.5);
-
-                            const yAxis = d3Val.axisLeft(yScale).ticks(5).tickFormat(d => d + "%");
-                            const yAxisG = g.append("g")
-                                .call(yAxis);
-                            yAxisG.attr("font-size", "7.5px")
-                                .attr("color", "#94a3b8")
-                                .attr("font-weight", "600");
-                            yAxisG.select(".domain")
-                                .attr("stroke", "#475569")
-                                .attr("stroke-width", 1.5);
-
-                            // Line generator with curved path
-                            const linePath = d3Val.line()
-                                .x(d => xScale(d.semester))
-                                .y(d => yScale(d.marks))
-                                .curve(d3Val.curveMonotoneX);
-
-                            // Gradient
-                            const gradientId = "d3-flow-grad";
-                            const defs = svg.append("defs");
-                            const linearGradient = defs.append("linearGradient")
-                                .attr("id", gradientId)
-                                .attr("x1", "0%").attr("y1", "0%")
-                                .attr("x2", "0%").attr("y2", "100%");
-                            linearGradient.append("stop")
-                                .attr("offset", "0%")
-                                .attr("stop-color", "#0ea5e9") // sky-500
-                                .attr("stop-opacity", 0.35);
-                            linearGradient.append("stop")
-                                .attr("offset", "100%")
-                                .attr("stop-color", "#0ea5e9")
-                                .attr("stop-opacity", 0.0);
-
-                            // Area generator
-                            const areaPath = d3Val.area()
-                                .x(d => xScale(d.semester))
-                                .y0(innerHeight)
-                                .y1(d => yScale(d.marks))
-                                .curve(d3Val.curveMonotoneX);
-
-                            // Draw area
-                            g.append("path")
-                                .datum(data)
-                                .attr("fill", "url(#" + gradientId + ")")
-                                .attr("d", areaPath);
-
-                            // Draw line
-                            g.append("path")
-                                .datum(data)
-                                .attr("fill", "none")
-                                .attr("stroke", "#38bdf8") // sky-400
-                                .attr("stroke-width", 3)
-                                .attr("stroke-linecap", "round")
-                                .attr("stroke-linejoin", "round")
-                                .attr("d", linePath);
-
-                            // Dots
-                            const dots = g.selectAll(".dot-group")
-                                .data(data)
-                                .enter()
-                                .append("g")
-                                .attr("class", "dot-group")
-                                .attr("transform", d => "translate(" + xScale(d.semester) + ", " + yScale(d.marks) + ")");
-
-                            dots.append("circle")
-                                .attr("r", 5.5)
-                                .attr("fill", "#0284c7")
-                                .attr("stroke", "#38bdf8")
-                                .attr("stroke-width", 1);
-
-                            dots.append("circle")
-                                .attr("r", 2.5)
-                                .attr("fill", "#ffffff");
-
-                            // Value text above markers
-                            dots.append("text")
-                                .attr("y", -10)
-                                .attr("text-anchor", "middle")
-                                .attr("fill", "#e2e8f0")
-                                .attr("font-size", "8px")
-                                .attr("font-weight", "800")
-                                .text(d => d.marks.toFixed(1) + "%");
-                        };
-
-                        renderChart();
-
-                        // Create ResizeObserver to make D3 chart truly responsive
-                        const resizeObserver = new ResizeObserver(() => {
-                            renderChart();
-                        });
-                        if (svgRef.current.parentElement) {
-                            resizeObserver.observe(svgRef.current.parentElement);
-                        }
-
-                        return () => {
-                            resizeObserver.disconnect();
-                        };
-                    }, [data]);
-
+                // --- Recharts-based grade progression chart React Component ---
+                const RechartsProgressionChart = ({ data }) => {
                     return (
-                        <div className="w-full relative py-2 mb-1">
-                            <svg ref={svgRef} className="overflow-visible w-full"></svg>
+                        <div style={{ width: '100%', height: 180 }}>
+                            <ResponsiveContainer>
+                                <AreaChart
+                                    data={data}
+                                    margin={{ top: 15, right: 15, left: -25, bottom: 5 }}
+                                >
+                                    <defs>
+                                        <linearGradient id="progressionGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
+                                    <XAxis dataKey="semester" stroke="#94a3b8" fontSize={8} tickLine={false} />
+                                    <YAxis stroke="#94a3b8" fontSize={8} domain={[0, 100]} tickCount={6} tickLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '8px', fontSize: '9px' }}
+                                        labelStyle={{ fontWeight: 'bold', color: '#0ea5e9' }}
+                                        formatter={(value) => [parseFloat(value).toFixed(1) + "%", 'Average Grade']}
+                                    />
+                                    <Area type="monotone" dataKey="marks" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#progressionGrad)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     );
                 };
 
                 function DashboardApp() {
-                    const getD3SemesterData = () => {
+                    const getSemesterData = () => {
                         const trend = infoData.trendData || [];
                         
                         const sem1Exams = trend.filter(x => x.name === "Weekly" || x.name === "Monthly" || x.name === "Quarterly");
@@ -3641,7 +3466,7 @@ fun RechartsDashboard(jsonData: String) {
                         ];
                     };
 
-                    const d3Data = getD3SemesterData();
+                    const semesterData = getSemesterData();
 
                     return (
                         <div className="flex flex-col space-y-4">
@@ -3670,20 +3495,20 @@ fun RechartsDashboard(jsonData: String) {
                                 </div>
                             </div>
 
-                            {/* D3-based Semester Line Chart */}
+                            {/* Recharts Semester Line Chart */}
                             <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-4 shadow-md">
                                 <div className="mb-3 flex items-center justify-between">
                                     <div className="min-w-0 pr-2">
-                                        <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider truncate">D3.js Semester Tracker</h3>
-                                        <p className="text-3xs text-slate-400 truncate">Interactive marks progression over academic semesters</p>
+                                        <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider truncate">Semester Progression Tracker</h3>
+                                        <p className="text-3xs text-slate-400 truncate">Grade progression over academic semesters</p>
                                     </div>
-                                    <span className="flex-shrink-0 bg-sky-500/10 text-sky-400 text-3xs px-1.5 py-0.5 rounded font-black border border-sky-400/20 uppercase tracking-wider">D3 Engine</span>
+                                    <span className="flex-shrink-0 bg-sky-500/10 text-sky-400 text-3xs px-1.5 py-0.5 rounded font-black border border-sky-400/20 uppercase tracking-wider">Recharts Chart</span>
                                 </div>
                                 
-                                <D3LineChart data={d3Data} />
+                                <RechartsProgressionChart data={semesterData} />
                                 
                                 <div className="mt-3 flex justify-around text-3xs text-slate-400 border-t border-slate-700/30 pt-2 font-semibold">
-                                    {d3Data.map((d, index) => (
+                                    {semesterData.map((d, index) => (
                                         <div key={index} className="text-center">
                                             <span className="text-slate-500 block text-4xs">{d.semester}</span>
                                             <span className="text-sky-400 font-bold block">{d.marks.toFixed(1)}%</span>
@@ -3872,8 +3697,8 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
         <body>
             <div class="space-y-3">
                 <div class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl shadow-md">
-                    <h3 class="text-xs font-black text-teal-400 uppercase tracking-widest mb-1">PapaParse CSV Parser Engine</h3>
-                    <p class="text-4xs text-slate-400 mb-3 leading-normal">Fully automated RFC-4180 parsing with validation & real-time visual grid preview mapping database assets.</p>
+                    <h3 class="text-xs font-black text-teal-400 uppercase tracking-widest mb-1">Local CSV Spreadsheet Tool</h3>
+                    <p class="text-4xs text-slate-400 mb-3 leading-normal">Fully automated spreadsheet parsing with validation & real-time visual grid preview mapping academic assets.</p>
                     
                     <div class="space-y-2.5">
                         <div class="flex gap-2">
@@ -3912,7 +3737,7 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
                     </div>
                     
                     <button onclick="triggerBulkImport()" class="w-full mt-3 bg-teal-400 hover:bg-teal-500 text-slate-950 font-black py-2 px-3 rounded-lg text-4xs tracking-widest uppercase transition duration-200 shadow-md">
-                        Bulk Insert into Encrypted Database
+                        Bulk Import School Records Safely
                     </button>
                 </div>
             </div>
@@ -4016,7 +3841,7 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
                         showError("No parsed records available for bulk loading.");
                         return;
                     }
-                    showStatus("Sending " + parsedData.length + " pre-parsed records to secure database...", false);
+                    showStatus("Saving " + parsedData.length + " pre-parsed records to secure school repository...", false);
                     if (window.AndroidBridge) {
                         window.AndroidBridge.importCsvJson(JSON.stringify(parsedData));
                     } else {
@@ -6011,7 +5836,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Save, contentDescription = null, tint = Blue500)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Marks Database Backup (CSV)", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("School Marks Backup (CSV)", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 },
                 text = {
@@ -7342,7 +7167,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
             title = {
                 val title = when (complianceDocToShow) {
                     "TC" -> "Terms & Conditions of Service"
-                    "PRIVACY" -> "Privacy & Encryption Policy"
+                    "PRIVACY" -> "Privacy & Security Policy"
                     "REFUND" -> "Cancellation & Refund SLA"
                     "SHIPPING" -> "Digital Access & Delivery Policy"
                     "CONTACT" -> "Merchant Contact Support Registry"

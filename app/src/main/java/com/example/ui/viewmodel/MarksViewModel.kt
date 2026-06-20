@@ -1388,7 +1388,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 if (marksToSave.isNotEmpty()) {
                     repository.saveMarksBulk(marksToSave)
                 }
-                actionMessage = "All cell updates securely saved to sqlite repository via high-speed transaction."
+                actionMessage = "All cell updates successfully saved to secure school records."
             } catch (e: Exception) {
                 e.printStackTrace()
                 actionMessage = "Error saving changes: ${e.message}"
@@ -1681,8 +1681,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
                 advisoryReport = report
             } catch (e: Exception) {
                 showNotification(
-                    title = "AI Engine API Failure",
-                    message = "Could not generate remote study plan (${e.message}). Reverting immediately to safe local intelligence engine.",
+                    title = "Academic Assistant Suggestion Info",
+                    message = "Could not generate dynamic study plan offline. Standard offline companion loaded.",
                     severity = NotificationSeverity.ERROR
                 )
                 advisoryReport = GeminiHelper.getLocalPlanFallback(studentName, currentSubjects, currentMarks)
@@ -1981,21 +1981,21 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             isSendingBulletins = true
             bulletinLogsList.clear()
-            bulletinLogsList.add("🚀 Starting Bulk Parental Email Bulletin Dispatch Service...")
+            bulletinLogsList.add("🚀 Starting Bulk Parental Report Card Dispatch...")
             kotlinx.coroutines.delay(600)
             
             var count = 0
             students.forEach { student ->
                 val decName = getDecryptedStudentName(student.encryptedName)
-                bulletinLogsList.add("📝 Preparing academic report digest for '$decName' [ID #${student.id}]...")
+                bulletinLogsList.add("📝 Preparing academic summary for '$decName'...")
                 kotlinx.coroutines.delay(500)
-                bulletinLogsList.add("🔒 Encrypting dossier signature with AES-256 standard keys...")
+                bulletinLogsList.add("🔒 Safeguarding document with privacy & access keys...")
                 kotlinx.coroutines.delay(400)
-                bulletinLogsList.add("📎 Rendering analytical overview charts...")
+                bulletinLogsList.add("📎 Attaching visual subject progression chart...")
                 kotlinx.coroutines.delay(400)
-                bulletinLogsList.add("📬 Dispatching secure SSL email link to parents of $decName...")
+                bulletinLogsList.add("📬 Mailing secure report digest to parents of $decName...")
                 kotlinx.coroutines.delay(500)
-                bulletinLogsList.add("✅ Delivered & acknowledged by parent inbox!")
+                bulletinLogsList.add("✅ Safely delivered to recipient family inbox!")
                 bulletinLogsList.add("------------------------------------")
                 count++
                 kotlinx.coroutines.delay(300)

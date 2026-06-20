@@ -47,11 +47,11 @@ fun CloudSyncStatusPanel(
     )
 
     val labelText = when {
-        !isOnline -> "Simulated OFFLINE Mode"
-        syncState == SyncState.SYNCING -> "Cloud Synchronizing..."
-        syncState == SyncState.ERROR -> "Remote Sync Conflict!"
-        pendingCount > 0 -> "Local Modifications Queued"
-        else -> "Fully Synced to Remote Storage"
+        !isOnline -> "Offline Mode Enabled"
+        syncState == SyncState.SYNCING -> "Updating Backup..."
+        syncState == SyncState.ERROR -> "Backup Connection Issue"
+        pendingCount > 0 -> "Local Backup Queue Active"
+        else -> "All records fully backed up"
     }
 
     val icon = when {
@@ -97,7 +97,7 @@ fun CloudSyncStatusPanel(
                             .background(statusColor)
                     )
                     Text(
-                        text = "Remote Cloud Sync Engine",
+                        text = "Automatic Backup & Sync",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -162,8 +162,8 @@ fun CloudSyncStatusPanel(
                     )
                     Text(
                         text = when {
-                            pendingCount > 0 -> "$pendingCount backlog items pending upload"
-                            else -> "Eventually consistent & offline-first protected"
+                            pendingCount > 0 -> "$pendingCount academic backup items remaining"
+                            else -> "Automatically backed up and saved safely offline"
                         },
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

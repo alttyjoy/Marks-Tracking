@@ -75,7 +75,7 @@ fun GlobalErrorBoundary(
                     )
 
                     Text(
-                        text = "Edu Marks Tracking has caught an unexpected rendering or processing error. The AES decryption engine remains active.",
+                        text = "Edu Marks Tracking has caught an unexpected rendering or processing error. The local secure storage remains active.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
