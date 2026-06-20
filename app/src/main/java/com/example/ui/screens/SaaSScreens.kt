@@ -1541,24 +1541,6 @@ fun LoginScreen(viewModel: MarksViewModel) {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text(
-                                    "🔑 Standard Sandbox Presets:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("• Admin: admin@school.edu.in  [Key: SchoolAdmin123!]", fontSize = 11.sp)
-                                Text("• Parent: parent.demo@test.com  [Key: parent123]", fontSize = 11.sp)
-                            }
-                        }
-
                     } else {
                         // --- REGISTER FLOW ---
                         Text(
@@ -1893,11 +1875,36 @@ fun LoginScreen(viewModel: MarksViewModel) {
 
         // Demo Presets / Quick shortcuts panel to allow easy testing of role boundaries
         Spacer(modifier = Modifier.height(24.dp))
-        Text("🚀 Rapid Demo Gateways (Bypass Sandbox Testing)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text("🚀 Quick Demo Logins", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
 
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    "💡 Guided Explorer Reference:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    "• Admin Demo: Try this to add academic subjects, register student lists, and edit exam scores inside the grid.\n" +
+                    "• Parent Demo: Try this to interact with dynamic child performance charts, view trends, and generate custom PDF reports.\n" +
+                    "• Super Demo: Try this to configure instance variable parameters, view invoice overviews, and test mock SMTP email alerts.\n" +
+                    "• Immediate Access: Tap any automatic sign-in button below to instantly experience the respective user workspace.",
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp,
+                    color = adaptiveSlate600()
+                )
+            }
+        }
+
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
@@ -1943,6 +1950,24 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     .testTag("demo_super_login")
             ) {
                 Text("Super Demo", fontSize = 11.sp)
+            }
+        }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+        ) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    "🔑 Standard Credentials for Manual Sign In:",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("• Admin Role: admin@school.edu.in  [Key: SchoolAdmin123!]", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text("• Parent Role: parent.demo@test.com  [Key: parent123]", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         }
 
