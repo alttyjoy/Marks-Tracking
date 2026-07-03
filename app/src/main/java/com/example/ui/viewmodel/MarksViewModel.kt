@@ -171,6 +171,8 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     // --- Grid Editing & Interaction States ---
     var selectedStudent by mutableStateOf<Student?>(null)
     val gridMarks = mutableStateMapOf<String, String>() // key format: "${subjectId}_${examType}" -> "score_string"
+    var isDashboardLoading by mutableStateOf(false)
+    var isMarksGridLoading by mutableStateOf(false)
 
     // --- Advisory & AI states ---
     var advisoryReport by mutableStateOf("")
@@ -383,6 +385,14 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun observeCoreData() {
         val user = currentUser ?: return
+
+        isDashboardLoading = true
+        isMarksGridLoading = true
+        viewModelScope.launch {
+            delay(650)
+            isDashboardLoading = false
+            isMarksGridLoading = false
+        }
 
         studentsJob?.cancel()
         subjectsJob?.cancel()
@@ -953,7 +963,7 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
 
     fun seedAndLoginParentDemo(onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
-            val parentEmail = "parent.demo@test.com"
+            val parentEmail = "parent.demo@school.edu.in"
             val pPass = "parent123"
 
             try {
@@ -1275,6 +1285,13 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     fun selectStudent(student: Student) {
         selectedStudent = student
         gridMarks.clear()
+        isMarksGridLoading = true
+        isDashboardLoading = true
+        viewModelScope.launch {
+            delay(500)
+            isMarksGridLoading = false
+            isDashboardLoading = false
+        }
         marksCollectionJob?.cancel()
         marksCollectionJob = viewModelScope.launch {
             repository.getMarksForStudent(student.id)
@@ -1971,6 +1988,77 @@ class MarksViewModel(application: Application) : AndroidViewModel(application) {
     var isSendingBulletins by mutableStateOf(false)
         private set
     val bulletinLogsList = androidx.compose.runtime.mutableStateListOf<String>()
+
+    var isExportingAllPdfs by mutableStateOf(false)
+        private set
+    val pdfExportLogsList = androidx.compose.runtime.mutableStateListOf<String>()
+
+    fun exportAllStudentReportsPdf(onFinished: (Int, File?) -> Unit) {
+        val students = _studentsList.value
+        if (students.isEmpty()) {
+            actionMessage = "Export Error: No student directory found to generate PDF reports!"
+            return
+        }
+        val user = currentUser
+        if (user == null) {
+            actionMessage = "Please sign in to proceed."
+            return
+        }
+        // Since we removed testing bypasses for production, let's allow all active users to export reports
+        viewModelScope.launch {
+            isExportingAllPdfs = true
+            pdfExportLogsList.clear()
+            pdfExportLogsList.add("🚀 Initiating Bulk PDF Compilation for school archives...")
+            kotlinx.coroutines.delay(400)
+            
+            var successCount = 0
+            var firstGeneratedFile: File? = null
+
+            students.forEach { student ->
+                val decName = getDecryptedStudentName(student.encryptedName)
+                pdfExportLogsList.add("📄 Compiling report card for '$decName'...")
+                
+                try {
+                    val studentMarks = withContext(Dispatchers.IO) {
+                        repository.getMarksForStudentSync(student.id)
+                    }
+
+                    val file = withContext(Dispatchers.IO) {
+                        PdfReportGenerator.generateStudentReportPdf(
+                            context = context,
+                            student = student,
+                            decryptedStudentName = decName,
+                            marks = studentMarks,
+                            subjects = _subjectsList.value,
+                            testTypes = _testTypesList.value
+                        )
+                    }
+
+                    if (file != null && file.exists()) {
+                        successCount++
+                        if (firstGeneratedFile == null) {
+                            firstGeneratedFile = file
+                        }
+                        pdfExportLogsList.add("✅ Formatted PDF generated: ${file.name}")
+                    } else {
+                        pdfExportLogsList.add("❌ Error compiling PDF for '$decName'")
+                    }
+                } catch (e: Exception) {
+                    pdfExportLogsList.add("❌ Exception compiling PDF for '$decName': ${e.message}")
+                }
+                kotlinx.coroutines.delay(200)
+            }
+
+            if (successCount > 0) {
+                pdfExportLogsList.add("🏁 Completed bulk compilation. $successCount reports successfully exported!")
+                actionMessage = "Successfully exported $successCount student report PDFs for parents and school archives!"
+            } else {
+                pdfExportLogsList.add("⚠️ No PDFs were successfully compiled.")
+            }
+            isExportingAllPdfs = false
+            onFinished(successCount, firstGeneratedFile)
+        }
+    }
 
     fun sendParentDigestBulletins(onFinished: (Int) -> Unit) {
         val students = _studentsList.value

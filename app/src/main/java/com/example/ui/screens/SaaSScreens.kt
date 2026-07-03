@@ -59,8 +59,14 @@ import android.annotation.SuppressLint
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import kotlin.math.roundToInt
 
 private val scaleFactor = 1.15f
+private val Orange400 = Color(0xFFFB923C)
 val Int.sp: TextUnit get() = (this * scaleFactor).baseSp
 val Double.sp: TextUnit get() = (this * scaleFactor).baseSp
 val Float.sp: TextUnit get() = (this * scaleFactor).baseSp
@@ -145,11 +151,15 @@ fun CustomSplashScreen(onTimeout: () -> Unit) {
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                text = "Edu Marks Tracking",
-                style = MaterialTheme.typography.displaySmall.copy(
+                text = "Edu Marks Tracker",
+                style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    color = Color.White,
+                    fontSize = 22.sp
                 ),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.graphicsLayer(alpha = alpha)
             )
 
@@ -1367,6 +1377,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
     var password by remember { mutableStateOf("") }
     var selectedComplianceDoc by remember { mutableStateOf<String?>(null) }
     var showGuideInline by remember { mutableStateOf(false) }
+    var isDemoAccordionExpanded by remember { mutableStateOf(false) }
 
     // Tab control: 0 = Login, 1 = Register
     var activeTab by remember { mutableStateOf(0) }
@@ -1491,17 +1502,17 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     if (activeTab == 0) {
                         // --- SIGN IN FLOW ---
                         Text(
-                            "Identify Secure Workspace Key",
-                            style = MaterialTheme.typography.titleMedium,
+                            "Sign In to Your Account",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            label = { Text("Email identifier") },
+                            label = { Text("Email Address") },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(20.dp)) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1514,7 +1525,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            label = { Text("Security Access Key") },
+                            label = { Text("Password") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(20.dp)) },
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier
@@ -1544,10 +1555,10 @@ fun LoginScreen(viewModel: MarksViewModel) {
                     } else {
                         // --- REGISTER FLOW ---
                         Text(
-                            "Create Secure Academic Account",
-                            style = MaterialTheme.typography.titleMedium,
+                            "Register Your Academic Account",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -1564,7 +1575,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = regEmail,
                             onValueChange = { regEmail = it },
-                            label = { Text("Email identifier") },
+                            label = { Text("Email Address") },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(20.dp)) },
                             modifier = Modifier.fillMaxWidth().testTag("reg_email_input"),
                             singleLine = true,
@@ -1575,7 +1586,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
                         OutlinedTextField(
                             value = regPassword,
                             onValueChange = { regPassword = it },
-                            label = { Text("Define Security Key (Password)") },
+                            label = { Text("Password") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(20.dp)) },
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth().testTag("reg_password_input"),
@@ -1586,7 +1597,7 @@ fun LoginScreen(viewModel: MarksViewModel) {
 
                         // Custom Plan Radio Grid
                         Text(
-                            "Choose Your Sandbox Subscription Profile:",
+                            "Choose Your Academic Subscription Profile:",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.primary,
@@ -1873,101 +1884,143 @@ fun LoginScreen(viewModel: MarksViewModel) {
             }
         }
 
-        // Demo Presets / Quick shortcuts panel to allow easy testing of role boundaries
+        // Demo Presets / Quick shortcuts panel to allow easy verification of role permissions
         Spacer(modifier = Modifier.height(24.dp))
-        Text("🚀 Quick Demo Logins", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(8.dp))
-
         Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    "💡 Guided Explorer Reference:",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    "• Admin Demo: Try this to add academic subjects, register student lists, and edit exam scores inside the grid.\n" +
-                    "• Parent Demo: Try this to interact with dynamic child performance charts, view trends, and generate custom PDF reports.\n" +
-                    "• Super Demo: Try this to configure instance variable parameters, view invoice overviews, and test mock SMTP email alerts.\n" +
-                    "• Immediate Access: Tap any automatic sign-in button below to instantly experience the respective user workspace.",
-                    fontSize = 11.sp,
-                    lineHeight = 16.sp,
-                    color = adaptiveSlate600()
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
-                    viewModel.seedAndLoginAdminDemo { dEmail, dPass ->
-                        email = dEmail
-                        password = dPass
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .testTag("demo_admin_login")
+                    .clickable { isDemoAccordionExpanded = !isDemoAccordionExpanded }
+                    .padding(16.dp)
             ) {
-                Text("Admin Demo", fontSize = 11.sp)
-            }
-
-            Button(
-                onClick = {
-                    viewModel.seedAndLoginParentDemo { dEmail, dPass ->
-                        email = dEmail
-                        password = dPass
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.VpnKey,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Quick Demo Logins & Access Credentials",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Teal500),
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("demo_parent_login")
-            ) {
-                Text("Parent Demo", fontSize = 11.sp)
-            }
+                    Icon(
+                        imageVector = if (isDemoAccordionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isDemoAccordionExpanded) "Collapse" else "Expand",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-            Button(
-                onClick = {
-                    viewModel.seedAndLoginSuperDemo { dEmail, dPass ->
-                        email = dEmail
-                        password = dPass
+                AnimatedVisibility(visible = isDemoAccordionExpanded) {
+                    Column {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    "💡 Guided Explorer Reference:",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                Text(
+                                    "• Admin Demo: Try this to add academic subjects, register student lists, and edit exam scores inside the grid.\n" +
+                                    "• Parent Demo: Try this to interact with dynamic child performance charts, view trends, and generate custom PDF reports.\n" +
+                                    "• Super Demo: Try this to configure instance variable parameters, view invoice overviews, and test mock SMTP email alerts.\n" +
+                                    "• Immediate Access: Tap any automatic sign-in button below to instantly experience the respective user workspace.",
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp,
+                                    color = adaptiveSlate600()
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    viewModel.seedAndLoginAdminDemo { dEmail, dPass ->
+                                        email = dEmail
+                                        password = dPass
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("demo_admin_login")
+                            ) {
+                                Text("Admin Demo", fontSize = 11.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.seedAndLoginParentDemo { dEmail, dPass ->
+                                        email = dEmail
+                                        password = dPass
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Teal500),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("demo_parent_login")
+                            ) {
+                                Text("Parent Demo", fontSize = 11.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.seedAndLoginSuperDemo { dEmail, dPass ->
+                                        email = dEmail
+                                        password = dPass
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Blue600),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("demo_super_login")
+                            ) {
+                                Text("Super Demo", fontSize = 11.sp)
+                            }
+                        }
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    "🔑 Standard Credentials for Manual Sign In:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("• Admin Role: admin@school.edu.in  [Key: SchoolAdmin123!]", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("• Parent Role: parent.demo@school.edu.in  [Key: parent123]", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Blue600),
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("demo_super_login")
-            ) {
-                Text("Super Demo", fontSize = 11.sp)
-            }
-        }
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-        ) {
-            Column(modifier = Modifier.padding(10.dp)) {
-                Text(
-                    "🔑 Standard Credentials for Manual Sign In:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("• Admin Role: admin@school.edu.in  [Key: SchoolAdmin123!]", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                Text("• Parent Role: parent.demo@test.com  [Key: parent123]", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
 
@@ -2805,219 +2858,223 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
                 }
             }
 
-            // EXCEL STYLE DATA ENTRY LAYOUT (HORIZONTALLY SCROLLABLE TABLE WITH SWIPE HINT)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Swipe indicator info",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = "Swipe horizontally on the spreadsheet below to view/edit all exam cycle marks.",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            if (viewModel.isMarksGridLoading) {
+                MarksGridSkeleton()
+            } else {
+                // EXCEL STYLE DATA ENTRY LAYOUT (HORIZONTALLY SCROLLABLE TABLE WITH SWIPE HINT)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Swipe indicator info",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Swipe horizontally on the spreadsheet below to view/edit all exam cycle marks.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, Slate600)
-            ) {
-                val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
-                
-                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
-                    // Left Column (Locked/Pinned Column)
-                    Column(
-                        modifier = Modifier
-                            .width(130.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    ) {
-                        // Left Header Row
-                        Box(
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Slate600)
+                ) {
+                    val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
+                    
+                    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                        // Left Column (Locked/Pinned Column)
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .background(Slate900)
-                                .padding(start = 12.dp),
-                            contentAlignment = Alignment.CenterStart
+                                .width(130.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                         ) {
-                            Text(
-                                "Subject Name",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                        }
-                        
-                        HorizontalDivider(color = Slate600)
-                        
-                        // Left Rows
-                        subjects.forEach { subject ->
+                            // Left Header Row
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp)
-                                    .padding(horizontal = 12.dp),
+                                    .height(48.dp)
+                                    .background(Slate900)
+                                    .padding(start = 12.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Text(
-                                    subject.name,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                    "Subject Name",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
                                 )
                             }
-                            HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
+                            
+                            HorizontalDivider(color = Slate600)
+                            
+                            // Left Rows
+                            subjects.forEach { subject ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Text(
+                                        subject.name,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
+                            }
                         }
-                    }
-                    
-                    // Vertical Separator Line between pinned and scrollable columns
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .fillMaxHeight()
-                            .background(Slate600)
-                    )
-                    
-                    // Right Columns (Scrollable Area)
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        // Right Header Row
-                        Row(
+                        
+                        // Vertical Separator Line between pinned and scrollable columns
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .background(Slate900),
-                            verticalAlignment = Alignment.CenterVertically
+                                .width(1.dp)
+                                .fillMaxHeight()
+                                .background(Slate600)
+                        )
+                        
+                        // Right Columns (Scrollable Area)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState())
                         ) {
-                            exams.forEach { exam ->
+                            // Right Header Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .background(Slate900),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                exams.forEach { exam ->
+                                    Text(
+                                        exam,
+                                        modifier = Modifier.width(90.dp),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                                 Text(
-                                    exam,
+                                    "Mean (%)",
                                     modifier = Modifier.width(90.dp),
-                                    color = Color.White,
+                                    color = Teal400,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                     textAlign = TextAlign.Center
                                 )
                             }
-                            Text(
-                                "Mean (%)",
-                                modifier = Modifier.width(90.dp),
-                                color = Teal400,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        
-                        HorizontalDivider(color = Slate600)
-                        
-                        // Right Data Rows
-                        subjects.forEach { subject ->
-                            var subjectSum = 0.0
-                            var count = 0
-                            Row(
-                                modifier = Modifier.height(56.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                exams.forEach { exam ->
-                                    val cellKey = "${subject.id}_$exam"
-                                    val textVal = viewModel.gridMarks[cellKey] ?: ""
-                                    val isEnabled = user.role != "VIEW_ONLY_PARENT"
- 
-                                    val scoreDouble = textVal.toDoubleOrNull()
-                                    if (scoreDouble != null) {
-                                        subjectSum += scoreDouble
-                                        count++
-                                    }
- 
-                                    Box(
-                                        modifier = Modifier
-                                            .width(90.dp)
-                                            .height(44.dp)
-                                            .padding(horizontal = 4.dp, vertical = 2.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                if (isEnabled) {
-                                                    MaterialTheme.colorScheme.surfaceVariant
-                                                } else {
-                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                                }
-                                            )
-                                            .border(1.dp, Slate600, RoundedCornerShape(6.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        BasicTextField(
-                                            value = textVal,
-                                            onValueChange = { 
-                                                if (isEnabled) {
-                                                    viewModel.updateGridCell(subject.id, exam, it)
-                                                }
-                                            },
-                                            enabled = isEnabled,
-                                            singleLine = true,
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            textStyle = LocalTextStyle.current.copy(
-                                                textAlign = TextAlign.Center,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (scoreDouble != null && scoreDouble < 40.0) Rose500 else MaterialTheme.colorScheme.onSurface
-                                            ),
+                            
+                            HorizontalDivider(color = Slate600)
+                            
+                            // Right Data Rows
+                            subjects.forEach { subject ->
+                                var subjectSum = 0.0
+                                var count = 0
+                                Row(
+                                    modifier = Modifier.height(56.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    exams.forEach { exam ->
+                                        val cellKey = "${subject.id}_$exam"
+                                        val textVal = viewModel.gridMarks[cellKey] ?: ""
+                                        val isEnabled = user.role != "VIEW_ONLY_PARENT"
+
+                                        val scoreDouble = textVal.toDoubleOrNull()
+                                        if (scoreDouble != null) {
+                                            subjectSum += scoreDouble
+                                            count++
+                                        }
+
+                                        Box(
                                             modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 4.dp, horizontal = 2.dp)
-                                                .testTag("cell_${subject.id}_${exam}")
-                                        )
+                                                .width(90.dp)
+                                                .height(44.dp)
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    if (isEnabled) {
+                                                        MaterialTheme.colorScheme.surfaceVariant
+                                                    } else {
+                                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                    }
+                                                )
+                                                .border(1.dp, Slate600, RoundedCornerShape(6.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            BasicTextField(
+                                                value = textVal,
+                                                onValueChange = { 
+                                                    if (isEnabled) {
+                                                        viewModel.updateGridCell(subject.id, exam, it)
+                                                    }
+                                                },
+                                                enabled = isEnabled,
+                                                singleLine = true,
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                textStyle = LocalTextStyle.current.copy(
+                                                    textAlign = TextAlign.Center,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (scoreDouble != null && scoreDouble < 40.0) Rose500 else MaterialTheme.colorScheme.onSurface
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp, horizontal = 2.dp)
+                                                    .testTag("cell_${subject.id}_${exam}")
+                                            )
+                                        }
                                     }
+
+                                    // Average Mean Column on right side
+                                    val rowMeanVal = if (count > 0) subjectSum / count else 0.0
+                                    Text(
+                                        if (count > 0) "${String.format("%.1f", rowMeanVal)}%" else "-",
+                                        modifier = Modifier.width(90.dp),
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (rowMeanVal < 40.0 && count > 0) Rose500 else Blue500
+                                    )
                                 }
- 
-                                // Average Mean Column on right side
-                                val rowMeanVal = if (count > 0) subjectSum / count else 0.0
-                                Text(
-                                    if (count > 0) "${String.format("%.1f", rowMeanVal)}%" else "-",
-                                    modifier = Modifier.width(90.dp),
-                                    textAlign = TextAlign.Center,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = if (rowMeanVal < 40.0 && count > 0) Rose500 else Blue500
-                                )
+                                HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
                             }
-                            HorizontalDivider(color = Slate600.copy(alpha = 0.3f))
                         }
                     }
                 }
-            }
 
-            if (user.role != "VIEW_ONLY_PARENT") {
-                Button(
-                    onClick = { viewModel.saveGridMarks() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp)
-                        .testTag("save_grid_button")
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Update Marks")
+                if (user.role != "VIEW_ONLY_PARENT") {
+                    Button(
+                        onClick = { viewModel.saveGridMarks() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
+                            .testTag("save_grid_button")
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Update Marks")
+                    }
                 }
             }
 
@@ -3031,7 +3088,7 @@ fun DataEntryGridScreen(viewModel: MarksViewModel, onNavigateToProfile: () -> Un
             var activeImportTab by remember { mutableStateOf(0) }
             AlertDialog(
                 onDismissRequest = { showImportDialog = false },
-                title = { Text("CSV Bulk Import Sandbox", fontWeight = FontWeight.Bold) },
+                title = { Text("CSV Bulk Import Center", fontWeight = FontWeight.Bold) },
                 text = {
                     val exams = testTypes.map { it.name }.ifEmpty { listOf("Weekly", "Monthly", "Quarterly", "Half-Yearly", "Annual") }
                     val sampleHeaders = "RollNo,StudentName,Subject,${exams.joinToString(",")},ParentEmail"
@@ -3706,6 +3763,7 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
             <title>PapaParse Studio</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
             <style>
                 body {
                     background-color: #0f172a;
@@ -3729,6 +3787,9 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
                         <div class="flex gap-2">
                             <button id="file-trigger" onclick="document.getElementById('csv-file').click()" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-black py-2 px-3 rounded-lg text-4xs uppercase tracking-wider transition duration-200 shadow">
                                 Choose CSV File
+                            </button>
+                            <button onclick="clearEncryptedCache()" class="bg-rose-950/60 hover:bg-rose-900 border border-rose-800/40 text-rose-400 font-bold px-2.5 py-2 rounded-lg text-4xs uppercase tracking-wider transition duration-200 shadow">
+                                Wipe Cache
                             </button>
                             <input type="file" id="csv-file" accept=".csv" class="hidden" onchange="handleFile(this)" />
                         </div>
@@ -3769,6 +3830,85 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
 
             <script>
                 let parsedData = [];
+
+                const CryptoJSService = {
+                    SECRET_KEY: "SaaS_Marks_Tracking_Secret_Key_123456",
+
+                    encryptAndSaveMarks: function(data) {
+                        try {
+                            const jsonString = JSON.stringify(data);
+                            const encrypted = CryptoJS.AES.encrypt(jsonString, this.SECRET_KEY).toString();
+                            localStorage.setItem('encrypted_student_marks', encrypted);
+                            return true;
+                        } catch (e) {
+                            console.error("Encryption error:", e);
+                            return false;
+                        }
+                    },
+
+                    loadAndDecryptMarks: function() {
+                        try {
+                            const encrypted = localStorage.getItem('encrypted_student_marks');
+                            if (!encrypted) return null;
+                            const bytes = CryptoJS.AES.decrypt(encrypted, this.SECRET_KEY);
+                            const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                            if (!decryptedText) return null;
+                            return JSON.parse(decryptedText);
+                        } catch (e) {
+                            console.error("Decryption error:", e);
+                            return null;
+                        }
+                    },
+
+                    clearSavedMarks: function() {
+                        localStorage.removeItem('encrypted_student_marks');
+                    }
+                };
+
+                window.onload = function() {
+                    try {
+                        const saved = CryptoJSService.loadAndDecryptMarks();
+                        if (saved && saved.length > 0) {
+                            parsedData = saved;
+                            const headers = Object.keys(saved[0]);
+                            
+                            showStatus("🔐 Restored & decrypted " + saved.length + " student marks from local storage via crypto-js AES!", false);
+                            
+                            const headerRow = document.getElementById("table-headers");
+                            headerRow.innerHTML = "";
+                            headers.forEach(h => {
+                                headerRow.innerHTML += `<th class="p-1.5 font-bold whitespace-nowrap">${'$'}{h}</th>`;
+                            });
+
+                            const rowsBody = document.getElementById("table-rows");
+                            rowsBody.innerHTML = "";
+                            
+                            const previewLimit = Math.min(parsedData.length, 10);
+                            for (let i = 0; i < previewLimit; i++) {
+                                const row = parsedData[i];
+                                let rowHtml = `<tr class="border-b border-slate-800/60 hover:bg-slate-800/20 text-5xs">`;
+                                headers.forEach(h => {
+                                    const cellVal = row[h] !== undefined ? row[h] : "";
+                                    rowHtml += `<td class="p-1.5 truncate max-w-[80px]" title="${'$'}{cellVal}">${'$'}{cellVal}</td>`;
+                                });
+                                rowHtml += "</tr>";
+                                rowsBody.innerHTML += rowHtml;
+                            }
+
+                            document.getElementById("record-count").innerText = parsedData.length + " Rows";
+                            document.getElementById("preview-card").classList.remove("hidden");
+                        }
+                    } catch (e) {
+                        console.error("Auto-load error:", e);
+                    }
+                };
+
+                function clearEncryptedCache() {
+                    CryptoJSService.clearSavedMarks();
+                    parsedData = [];
+                    document.getElementById("preview-card").classList.add("hidden");
+                    showStatus("Encrypted local storage cache wiped successfully!", false);
+                }
 
                 function handleFile(input) {
                     const file = input.files[0];
@@ -3834,7 +3974,11 @@ fun PapaParseUploader(viewModel: com.example.ui.viewmodel.MarksViewModel, onWebV
                         return;
                     }
 
-                    showStatus("Successfully analyzed " + parsedData.length + " source CSV records!", false);
+                    // Save parsed marks securely using crypto-js before storing in localStorage
+                    const encryptedOk = CryptoJSService.encryptAndSaveMarks(parsedData);
+                    const storageNotice = encryptedOk ? " (Saved Encrypted to Local Storage via Crypto-JS)" : "";
+
+                    showStatus("Successfully analyzed " + parsedData.length + " source CSV records!" + storageNotice, false);
                     
                     const headerRow = document.getElementById("table-headers");
                     headerRow.innerHTML = "";
@@ -4787,6 +4931,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
         }
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (viewModel.isDashboardLoading) {
+            DashboardSkeleton()
+            return@Column
+        }
+
         if (student == null || marks.isEmpty() || subjects.isEmpty()) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -5040,8 +5189,10 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("1. Exam-to-Exam Progress Trend (%)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Shows how the student's overall exam scores change from one test to the next", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
+                Text("Shows how the student's overall exam scores change from one test to the next (Tap nodes for details)", style = MaterialTheme.typography.bodySmall, color = adaptiveSlate600())
                 Spacer(modifier = Modifier.height(18.dp))
+
+                var selectedPointIndex by remember { mutableStateOf<Int?>(null) }
 
                 val examAverages = exams.map { exam ->
                     val examMarks = displayedMarks.filter { it.examType == exam }
@@ -5065,6 +5216,13 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp)
+                        .pointerInput(exams.size) {
+                            detectTapGestures { offset ->
+                                val spacing = if (exams.size > 1) size.width.toFloat() / (exams.size - 1) else size.width.toFloat()
+                                val idx = (offset.x / spacing).roundToInt().coerceIn(0, exams.size - 1)
+                                selectedPointIndex = if (selectedPointIndex == idx) null else idx
+                            }
+                        }
                 ) {
                     val width = size.width
                     val height = size.height
@@ -5106,15 +5264,75 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                         points.forEachIndexed { pIdx, yPos ->
                             val xPos = pIdx * spacing
                             drawCircle(
-                                color = Teal500,
-                                radius = 10f,
+                                color = if (selectedPointIndex == pIdx) Orange400 else Teal500,
+                                radius = if (selectedPointIndex == pIdx) 14f else 10f,
                                 center = Offset(xPos, yPos)
                             )
                             drawCircle(
                                 color = Color.White,
-                                radius = 5f,
+                                radius = if (selectedPointIndex == pIdx) 7f else 5f,
                                 center = Offset(xPos, yPos)
                             )
+                        }
+
+                        // Draw interactive hover tooltip if selected
+                        selectedPointIndex?.let { idx ->
+                            if (idx < points.size && idx < exams.size) {
+                                val xPos = idx * spacing
+                                val yPos = points[idx]
+                                val examName = exams[idx]
+                                val scoreVal = examAverages[idx]
+
+                                // Highlight line
+                                drawLine(
+                                    color = Orange400.copy(alpha = 0.5f),
+                                    start = Offset(xPos, 0f),
+                                    end = Offset(xPos, height),
+                                    strokeWidth = 2f,
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                                )
+
+                                val text = "$examName: ${String.format("%.1f", scoreVal)}%"
+                                val textPaint = android.graphics.Paint().apply {
+                                    color = android.graphics.Color.WHITE
+                                    textSize = 28f
+                                    typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                                    textAlign = android.graphics.Paint.Align.CENTER
+                                    isAntiAlias = true
+                                }
+
+                                val bounds = android.graphics.Rect()
+                                textPaint.getTextBounds(text, 0, text.length, bounds)
+                                val textWidth = bounds.width()
+                                val textHeight = bounds.height()
+
+                                val tooltipWidth = textWidth + 30f
+                                val tooltipHeight = textHeight + 20f
+                                val tooltipX = (xPos - tooltipWidth / 2).coerceIn(10f, width - tooltipWidth - 10f)
+                                val tooltipY = if (yPos - tooltipHeight - 15f > 10f) yPos - tooltipHeight - 15f else yPos + 15f
+
+                                // Tooltip background
+                                drawRoundRect(
+                                    color = Color(0xFF1E293B),
+                                    topLeft = Offset(tooltipX, tooltipY),
+                                    size = Size(tooltipWidth, tooltipHeight),
+                                    cornerRadius = CornerRadius(8f, 8f)
+                                )
+                                drawRoundRect(
+                                    color = Orange400,
+                                    topLeft = Offset(tooltipX, tooltipY),
+                                    size = Size(tooltipWidth, tooltipHeight),
+                                    cornerRadius = CornerRadius(8f, 8f),
+                                    style = Stroke(width = 2f)
+                                )
+
+                                drawContext.canvas.nativeCanvas.drawText(
+                                    text,
+                                    tooltipX + tooltipWidth / 2,
+                                    tooltipY + tooltipHeight / 2 + textHeight / 2 - 2f,
+                                    textPaint
+                                )
+                            }
                         }
                     }
                 }
@@ -5243,15 +5461,28 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
         Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("4. Performance Progress Chart", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Compares overall exam scores across different school terms", style = MaterialTheme.typography.bodySmall, color = Slate600)
+                Text("Compares overall exam scores across different school terms (Tap bars for details)", style = MaterialTheme.typography.bodySmall, color = Slate600)
                 Spacer(modifier = Modifier.height(18.dp))
+
+                var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
 
                 val trendScores = exams.map { exam ->
                     val examMarks = displayedMarks.filter { it.examType == exam }
                     if (examMarks.isNotEmpty()) examMarks.map { it.marksObtained }.average() else 0.0
                 }
 
-                Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .pointerInput(exams.size) {
+                            detectTapGestures { offset ->
+                                val spacing = if (exams.isNotEmpty()) size.width.toFloat() / exams.size else size.width.toFloat()
+                                val idx = (offset.x / spacing).toInt().coerceIn(0, exams.size - 1)
+                                selectedBarIndex = if (selectedBarIndex == idx) null else idx
+                            }
+                        }
+                ) {
                     val width = size.width
                     val height = size.height
                     val barWidth = 45.dp.toPx()
@@ -5262,12 +5493,65 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                         val x = idx * spacing + (spacing - barWidth) / 2
                         val y = height - barHeight
                         
+                        val isHighlighted = selectedBarIndex == idx
                         drawRoundRect(
-                            color = if (score < 40.0) Rose500 else Blue500,
+                            color = if (isHighlighted) Orange400 else (if (score < 40.0) Rose500 else Blue500),
                             topLeft = Offset(x, y),
                             size = Size(barWidth, barHeight),
                             cornerRadius = CornerRadius(10f, 10f)
                         )
+                    }
+
+                    selectedBarIndex?.let { idx ->
+                        if (idx < trendScores.size && idx < exams.size) {
+                            val score = trendScores[idx]
+                            val examName = exams[idx]
+                            
+                            val barHeight = (score / 100.0).toFloat() * height
+                            val x = idx * spacing + (spacing - barWidth) / 2
+                            val y = height - barHeight
+
+                            val text = "$examName: ${String.format("%.1f", score)}%"
+                            val textPaint = android.graphics.Paint().apply {
+                                color = android.graphics.Color.WHITE
+                                textSize = 28f
+                                typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                                textAlign = android.graphics.Paint.Align.CENTER
+                                isAntiAlias = true
+                            }
+
+                            val bounds = android.graphics.Rect()
+                            textPaint.getTextBounds(text, 0, text.length, bounds)
+                            val textWidth = bounds.width()
+                            val textHeight = bounds.height()
+
+                            val tooltipWidth = textWidth + 30f
+                            val tooltipHeight = textHeight + 20f
+                            val tooltipX = (x + barWidth / 2 - tooltipWidth / 2).coerceIn(10f, width - tooltipWidth - 10f)
+                            val tooltipY = if (y - tooltipHeight - 15f > 10f) y - tooltipHeight - 15f else y + 15f
+
+                            // Tooltip background
+                            drawRoundRect(
+                                color = Color(0xFF1E293B),
+                                topLeft = Offset(tooltipX, tooltipY),
+                                size = Size(tooltipWidth, tooltipHeight),
+                                cornerRadius = CornerRadius(8f, 8f)
+                            )
+                            drawRoundRect(
+                                color = Orange400,
+                                topLeft = Offset(tooltipX, tooltipY),
+                                size = Size(tooltipWidth, tooltipHeight),
+                                cornerRadius = CornerRadius(8f, 8f),
+                                style = Stroke(width = 2f)
+                            )
+
+                            drawContext.canvas.nativeCanvas.drawText(
+                                text,
+                                tooltipX + tooltipWidth / 2,
+                                tooltipY + tooltipHeight / 2 + textHeight / 2 - 2f,
+                                textPaint
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -5756,7 +6040,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                 }
 
                 Text(
-                    text = "Unlock high-fidelity data backups. Instantly compile all student spreadsheets to raw CSV datasets or trigger simulated secure mail bulletins to matching parents.",
+                    text = "Unlock high-fidelity data backups and school archives. Instantly compile all student spreadsheets to raw CSV datasets, trigger simulated secure mail bulletins to families, or batch-export beautifully formatted student grade reports as PDF files for archives and parents.",
                     style = MaterialTheme.typography.bodySmall,
                     color = adaptiveSlate600()
                 )
@@ -5764,17 +6048,52 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
                         onClick = { showCsvDialog = true },
                         modifier = Modifier.weight(1f).testTag("export_csv_btn"),
                         colors = ButtonDefaults.buttonColors(containerColor = Blue500),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
-                        Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Export CSV", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Export CSV", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            viewModel.exportAllStudentReportsPdf { count, firstFile ->
+                                if (count > 0 && firstFile != null) {
+                                    viewModel.lastDownloadedReportFile = firstFile
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Successfully exported $count grade reports! Saved to public Downloads and ready to share.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Failed or compiled 0 PDF reports.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1.3f).testTag("bulk_pdf_export_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        enabled = !viewModel.isExportingAllPdfs,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                    ) {
+                        if (viewModel.isExportingAllPdfs) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(14.dp))
+                        } else {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (viewModel.isExportingAllPdfs) "Exporting PDFs..." else "Bulk PDF Reports", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Button(
@@ -5790,27 +6109,42 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                         modifier = Modifier.weight(1.2f).testTag("parent_bulletin_btn"),
                         colors = ButtonDefaults.buttonColors(containerColor = Teal500),
                         enabled = !viewModel.isSendingBulletins,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
                         if (viewModel.isSendingBulletins) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(14.dp))
                         } else {
-                            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (viewModel.isSendingBulletins) "Sending..." else "Send Bulletins", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (viewModel.isSendingBulletins) "Sending..." else "Send Bulletins", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                // Log terminal output for mail dispatcher
-                if (viewModel.isSendingBulletins || viewModel.bulletinLogsList.isNotEmpty()) {
+                // Log terminal output for mail dispatcher or PDF bulk exporter
+                if (viewModel.isSendingBulletins || viewModel.bulletinLogsList.isNotEmpty() ||
+                    viewModel.isExportingAllPdfs || viewModel.pdfExportLogsList.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Outbox Dispatch Log Status:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Blue500)
+                    val logTitle = if (viewModel.isExportingAllPdfs || viewModel.pdfExportLogsList.isNotEmpty()) {
+                        "Bulk PDF Export Log Status:"
+                    } else {
+                        "Outbox Dispatch Log Status:"
+                    }
+                    val currentLogs = if (viewModel.isExportingAllPdfs || viewModel.pdfExportLogsList.isNotEmpty()) {
+                        viewModel.pdfExportLogsList
+                    } else {
+                        viewModel.bulletinLogsList
+                    }
+                    val isRunning = viewModel.isSendingBulletins || viewModel.isExportingAllPdfs
+                    val indicatorColor = if (viewModel.isExportingAllPdfs) MaterialTheme.colorScheme.primary else Teal500
+
+                    Text(logTitle, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = indicatorColor)
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    if (viewModel.isSendingBulletins) {
+                    if (isRunning) {
                         LinearProgressIndicator(
-                            color = Teal500,
+                            color = indicatorColor,
                             trackColor = adaptiveSlate100(),
                             modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape)
                         )
@@ -5826,7 +6160,7 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                             .padding(10.dp)
                     ) {
                         val scrollState = rememberScrollState()
-                        LaunchedEffect(viewModel.bulletinLogsList.size) {
+                        LaunchedEffect(currentLogs.size) {
                             scrollState.scrollTo(scrollState.maxValue)
                         }
 
@@ -5835,11 +6169,11 @@ fun AdvancedAnalyticsScreen(viewModel: MarksViewModel) {
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
                         ) {
-                            viewModel.bulletinLogsList.forEach { logEntry ->
+                            currentLogs.forEach { logEntry ->
                                 Text(
                                     text = logEntry,
                                     color = if (logEntry.startsWith("✅") || logEntry.startsWith("🏁")) Teal500
-                                            else if (logEntry.contains("Error")) Rose500
+                                            else if (logEntry.contains("Error") || logEntry.contains("❌")) Rose500
                                             else Color(0xFFE2E8F0),
                                     fontSize = 10.sp,
                                     fontFamily = FontFamily.Monospace,
@@ -6690,7 +7024,7 @@ fun BillingSuiteScreen(viewModel: MarksViewModel) {
 
         // --- SECTION B: THE UNIFIED ALL-TIME PRICING TABLE ---
         Text("Academic System Subscription Plans", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("Explore three robust plans. Select any plan to instantly downgrade or upgrade for testing.", style = MaterialTheme.typography.bodySmall, color = Slate600)
+        Text("Explore three robust plans. Select any plan to instantly update your academic profile subscription.", style = MaterialTheme.typography.bodySmall, color = Slate600)
         Spacer(modifier = Modifier.height(12.dp))
 
         // Card 1: Free Plan
@@ -7681,3 +8015,222 @@ fun PolicyDocumentContent(docType: String) {
         }
     }
 }
+
+@Composable
+fun ShimmerPlaceholder(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.foundation.shape.RoundedCornerShape = RoundedCornerShape(8.dp)
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmer_alpha"
+    )
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = alpha * 0.15f))
+    )
+}
+
+@Composable
+fun MarksGridSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        ShimmerPlaceholder(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+                .padding(vertical = 4.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Slate600.copy(alpha = 0.5f))
+        ) {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                Column(
+                    modifier = Modifier
+                        .width(130.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .background(Slate900.copy(alpha = 0.8f))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        ShimmerPlaceholder(modifier = Modifier.width(80.dp).height(16.dp))
+                    }
+                    HorizontalDivider(color = Slate600.copy(alpha = 0.5f))
+                    repeat(5) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            ShimmerPlaceholder(modifier = Modifier.width(90.dp).height(16.dp))
+                        }
+                        HorizontalDivider(color = Slate600.copy(alpha = 0.2f))
+                    }
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(Slate600.copy(alpha = 0.5f))
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .background(Slate900.copy(alpha = 0.8f)),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        repeat(4) {
+                            ShimmerPlaceholder(modifier = Modifier.width(60.dp).height(16.dp))
+                        }
+                    }
+                    HorizontalDivider(color = Slate600.copy(alpha = 0.5f))
+                    repeat(5) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            repeat(4) {
+                                ShimmerPlaceholder(modifier = Modifier.width(60.dp).height(28.dp))
+                            }
+                        }
+                        HorizontalDivider(color = Slate600.copy(alpha = 0.2f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            repeat(4) {
+                ShimmerPlaceholder(modifier = Modifier.width(80.dp).height(32.dp), shape = RoundedCornerShape(16.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            repeat(3) {
+                Card(
+                    modifier = Modifier.weight(1f).height(90.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ShimmerPlaceholder(modifier = Modifier.width(50.dp).height(12.dp))
+                        ShimmerPlaceholder(modifier = Modifier.width(40.dp).height(24.dp))
+                        ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(10.dp))
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth().height(260.dp),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShimmerPlaceholder(modifier = Modifier.width(140.dp).height(18.dp))
+                    ShimmerPlaceholder(modifier = Modifier.width(60.dp).height(18.dp))
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.BottomStart
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        val heights = listOf(0.4f, 0.7f, 0.5f, 0.85f, 0.6f, 0.9f)
+                        heights.forEach { h ->
+                            ShimmerPlaceholder(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .fillMaxHeight(h),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ShimmerPlaceholder(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(20.dp))
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ShimmerPlaceholder(modifier = Modifier.width(120.dp).height(14.dp))
+                    ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(10.dp))
+                    ShimmerPlaceholder(modifier = Modifier.fillMaxWidth(0.7f).height(10.dp))
+                }
+            }
+        }
+    }
+}
+
